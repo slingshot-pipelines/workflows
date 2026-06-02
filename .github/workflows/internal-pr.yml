@@ -1,0 +1,69 @@
+name: (internal) pr
+
+on:
+  workflow_call:
+    secrets:
+      WRITER_APP_CLIENT_ID:
+        required: false
+      WRITER_APP_PRIVATE_KEY:
+        required: false
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+jobs:
+
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      changed-components: ${{ steps.changed-components.outputs.changed-components }}
+      changed-component-types: ${{ steps.changed-components.outputs.changed-component-types }}
+      changed-components-by-type: ${{ steps.changed-components.outputs.changed-components-by-type }}
+    steps:
+      -
+        uses: actions/checkout@v6
+      -
+        name: Detect changed components
+        id: changed-components
+        uses: rx-refill-reminders/pipeline/.github/actions/components-changed@components-changed/v0
+
+  components:
+    needs:
+      - detect-changes
+    if: ${{ contains(needs.detect-changes.outputs.changed-component-types, '"components"') }}
+    uses: rx-refill-reminders/pipeline/.github/workflows/check-components.yml@check-components/v0
+    secrets: inherit
+
+  github-actions:
+    needs:
+      - detect-changes
+    if: ${{ contains(needs.detect-changes.outputs.changed-component-types, '"github-actions"') }}
+    uses: rx-refill-reminders/pipeline/.github/workflows/check-github-actions.yml@check-github-actions/v0
+    strategy:
+      matrix:
+        COMPONENT: ${{ fromJSON(needs.detect-changes.outputs.changed-components-by-type)['github-actions'].*.component }}
+    with:
+      COMPONENT: ${{ matrix.COMPONENT }}
+    secrets: inherit
+
+  pr-ready:
+    if: ${{ always() }}
+    needs:
+      - detect-changes
+      - components
+      - github-actions
+    runs-on: ubuntu-latest
+    steps:
+      -
+        uses: actions/checkout@v6
+      -
+        name: Emit PR ready check
+        uses: slingshot-pipelines/action-pr-ready@v0
+        with:
+          NEEDS: ${{ toJSON(needs) }}

@@ -1,0 +1,116 @@
+name: check-library
+
+on:
+  workflow_call:
+    inputs:
+      COMPONENT:
+        type: string
+        required: true
+    secrets:
+      WRITER_APP_CLIENT_ID:
+        required: false
+      WRITER_APP_PRIVATE_KEY:
+        required: false
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  lint-and-test:
+    name: (${{ inputs.COMPONENT }}) lint-and-test
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Fetch app token
+        id: fetch-app-token
+        uses: rx-refill-reminders/pipeline/.github/actions/github-app-token@github-app-token/v0
+        with:
+          app-client-id: ${{ secrets.WRITER_APP_CLIENT_ID }}
+          app-private-key: ${{ secrets.WRITER_APP_PRIVATE_KEY }}
+      -
+        uses: actions/checkout@v6
+        with:
+          token: ${{ steps.fetch-app-token.outputs.token || github.token }}
+      -
+        name: Components info
+        id: components-info
+        uses: rx-refill-reminders/pipeline/.github/actions/components-info@components-info/v0
+      -
+        name: Extract info for this component as outputs
+        id: component-info
+        env:
+          COMPONENT: ${{ inputs.COMPONENT }}
+          COMPONENTS_INFO: ${{ steps.components-info.outputs.info }}
+        run: |
+          COMPONENT_INFO=$(echo "$COMPONENTS_INFO" \
+            | jq -rc --arg component "$COMPONENT" \
+              '.[$component]')
+          
+          COMPONENT_PATH=$(echo "$COMPONENT_INFO" | jq -rc '.path')
+          if [[ -z "$COMPONENT_PATH" ]]; then
+            >&2 echo "Error determining component directory"
+            exit 1
+          fi
+
+          echo "path=$COMPONENT_PATH" | tee -a "$GITHUB_OUTPUT"
+
+          SRC_LANG=$(echo "$COMPONENT_INFO" | jq -rc '.language')
+          if [[ -z "$COMPONENT_INFO" ]]; then
+            >&2 echo "Error determining source language"
+            exit 1
+          fi
+
+          echo "language=$SRC_LANG" | tee -a "$GITHUB_OUTPUT"
+      -
+        uses: actions/setup-go@v6
+        if: ${{ steps.component-info.outputs.language == 'go' }}
+        with:
+          go-version-file: ${{ steps.component-info.outputs.path }}/go.mod
+          cache-dependency-path: ${{ steps.component-info.outputs.path }}/go.mod
+      -
+        name: Lint source
+        working-directory: ${{ steps.component-info.outputs.path }}
+        run: |
+          make lint
+      -
+        name: Detect changes
+        id: detect-changes
+        shell: bash
+        run: |
+          # Check for generated changes
+
+          git status -s
+
+          if [ -n "$(git status -s)" ]; then
+            echo "detected=true" | tee -a "$GITHUB_OUTPUT"
+          else
+            echo "detected=false" | tee -a "$GITHUB_OUTPUT"
+          fi
+      -
+        name: Commit changes if detected
+        if: ${{ steps.detect-changes.outputs.detected == 'true' }}
+        uses: planetscale/ghcommit-action@v0.2.20
+        env:
+          GITHUB_TOKEN: ${{ steps.fetch-app-token.outputs.token || github.token }}
+        with:
+          commit_message: "lint ${{ inputs.COMPONENT }} source code"
+          repo: ${{ github.repository }}
+          branch: ${{ github.head_ref || github.ref_name }}
+      -
+        name: Fail if changes
+        shell: bash
+        if: ${{ steps.detect-changes.outputs.detected == 'true' }}
+        run: |
+          exit 1
+      -
+        name: Unit tests
+        working-directory: ${{ steps.component-info.outputs.path }}
+        run: |
+          make unit-test

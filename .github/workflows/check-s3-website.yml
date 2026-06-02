@@ -1,0 +1,142 @@
+name: check-s3-website
+
+on:
+
+  workflow_call:
+    inputs:
+      COMPONENT:
+        type: string
+        required: true
+    secrets:
+      WRITER_APP_CLIENT_ID:
+        required: false
+      WRITER_APP_PRIVATE_KEY:
+        required: false
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+
+  lint-test-build:
+    name: (${{ inputs.COMPONENT }}) lint-test-build
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Fetch app token
+        id: fetch-app-token
+        uses: rx-refill-reminders/pipeline/.github/actions/github-app-token@github-app-token/v0
+        with:
+          app-client-id: ${{ secrets.WRITER_APP_CLIENT_ID }}
+          app-private-key: ${{ secrets.WRITER_APP_PRIVATE_KEY }}
+      -
+        uses: actions/checkout@v6
+        with:
+          token: ${{ steps.fetch-app-token.outputs.token || github.token }}
+      -
+        name: Get component info
+        id: component-info
+        uses: rx-refill-reminders/pipeline/.github/actions/component-info@component-info/v0
+        with:
+          component: ${{ inputs.COMPONENT }}
+      -
+        name: Extract component path
+        id: extract-component-info
+        env:
+          COMPONENT_INFO: ${{ steps.component-info.outputs.info }}
+        run: |
+          COMPONENT_PATH=$(echo "$COMPONENT_INFO" | jq -rc '.path // ""')
+          if [[ -z "$COMPONENT_PATH" ]]; then
+            >&2 echo "Could not determine component path"
+            exit 1
+          fi
+
+          echo "path=$COMPONENT_PATH" | tee -a "$GITHUB_OUTPUT"
+      -
+        name: Check Makefile targets
+        id: check-make-targets
+        env:
+          OPTIONAL_TARGETS: |
+            lint
+            unit-test
+        run: |
+          FOUND_TARGETS='[]'
+          while IFS='' read -r TARGET && [[ -n "$TARGET" ]]; do
+            if make -q "$TARGET" 2>/dev/null; (( $? < 2 )); then
+              FOUND_TARGETS=$(echo "$FOUND_TARGETS" \
+                | jq -rc \
+                  --arg target "$TARGET" \
+                  '. += [$target]')
+
+              echo "${TARGET}: found"
+            else
+              echo "${TARGET}: not found"
+            fi
+          done <<< "$OPTIONAL_TARGETS"
+
+          echo "Found targets: ${FOUND_TARGETS}"
+          echo "found-targets=${FOUND_TARGETS}" >> "$GITHUB_OUTPUT"
+      -
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ${{ steps.extract-component-info.outputs.path }}/package.json
+          cache: npm
+          cache-dependency-path: ${{ steps.extract-component-info.outputs.path }}/package-lock.json
+      -
+        name: Install dependencies
+        working-directory: ${{ steps.extract-component-info.outputs.path }}
+        run: |
+          npm ci
+      -
+        name: Lint source code
+        working-directory: ${{ steps.extract-component-info.outputs.path }}
+        if: ${{ contains(fromJSON(steps.check-make-targets.outputs.found-targets), 'lint') }}
+        run: |
+          make lint
+      -
+        name: Detect changes
+        id: detect-changes
+        shell: bash
+        run: |
+          # Check for generated changes
+
+          git status -s
+
+          if [ -n "$(git status -s)" ]; then
+            echo "detected=true" | tee -a "$GITHUB_OUTPUT"
+          else
+            echo "detected=false" | tee -a "$GITHUB_OUTPUT"
+          fi
+      -
+        name: Commit changes if detected
+        if: ${{ steps.detect-changes.outputs.detected == 'true' }}
+        uses: planetscale/ghcommit-action@v0.2.20
+        env:
+          GITHUB_TOKEN: ${{ steps.fetch-app-token.outputs.token || github.token }}
+        with:
+          commit_message: "lint ${{ inputs.COMPONENT }} source code"
+          repo: ${{ github.repository }}
+          branch: ${{ github.head_ref || github.ref_name }}
+      -
+        name: Fail if changes
+        shell: bash
+        if: ${{ steps.detect-changes.outputs.detected == 'true' }}
+        working-directory: ${{ steps.extract-component-info.outputs.path }}
+        run: |
+          exit 1
+      -
+        name: Unit test
+        if: ${{ contains(fromJSON(steps.check-make-targets.outputs.found-targets), 'unit-test') }}
+        working-directory: ${{ steps.extract-component-info.outputs.path }}
+        run: |
+          make unit-test
+      -
+        name: Build
+        working-directory: ${{ steps.extract-component-info.outputs.path }}
+        run: |
+          npm run build

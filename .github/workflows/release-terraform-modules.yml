@@ -1,0 +1,121 @@
+name: deploy-terraform-modules
+
+on:
+  workflow_call:
+    inputs:
+      COMPONENT:
+        type: string
+        required: true
+      ALL:
+        type: boolean
+        required: false
+        default: false
+    secrets:
+      WRITER_APP_CLIENT_ID:
+        required: false
+      WRITER_APP_PRIVATE_KEY:
+        required: false
+
+permissions:
+  contents: write
+  pull-requests: read
+  id-token: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  detect-changes:
+    name: (${{ inputs.COMPONENT }}) detect-changes
+    runs-on: ubuntu-latest
+    outputs:
+      modules: ${{ steps.modules.outputs.modules }}
+    steps:
+      -
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      -
+        name: Get component info
+        id: component-info
+        uses: rx-refill-reminders/pipeline/.github/actions/component-info@component-info/v0
+        with:
+          component: ${{ inputs.COMPONENT }}
+      -
+        name: Extract modules path
+        id: modules-dir
+        env:
+          COMPONENT_INFO: ${{ steps.component-info.outputs.info }}
+        run: |
+          COMPONENT_PATH=$(echo "$COMPONENT_INFO" | jq -rc '.path')
+          if [[ -z "$COMPONENT_PATH" ]]; then
+            >&2 echo "Error extracting component path"
+            exit 1
+          fi
+
+          echo "dir=$COMPONENT_PATH" | tee -a "$GITHUB_OUTPUT"
+      -
+        uses: dorny/paths-filter@v4
+        id: paths-filter
+        if: ${{ inputs.ALL != true }}
+        with:
+          list-files: json
+          filters: |
+            modules:
+              - '${{ steps.modules-dir.outputs.dir }}/**'
+      -
+        name: List all module files for bump
+        id: list-all
+        if: ${{ inputs.ALL == true }}
+        env:
+          MODULES_DIR: ${{ steps.modules-dir.outputs.dir }}
+        run: |
+          MODULES_FILES=$(find "$MODULES_DIR" -mindepth 2 -type f \
+            | jq -rcsR 'split("\n") | map(select(. != ""))')
+
+          echo "modules-files=$MODULES_FILES" | tee -a "$GITHUB_OUTPUT"
+      -
+        name: Output modules
+        id: modules
+        env:
+          MODULES_FILES: ${{ steps.list-all.outputs.modules-files || steps.paths-filter.outputs.modules_files }}
+        run: |
+          echo "::group::Changed modules"
+
+          MODULES_FILES_LINES=$(printf '%s' "$MODULES_FILES" | jq -rc '.[]')
+          if [[ -z "$MODULES_FILES_LINES" ]]; then
+            echo "No modules changed"
+            MODULES_JSON='[]'
+          else
+            MODULE_NAMES=$(printf '%s' "$MODULES_FILES_LINES" \
+              | sed -nE 's,${{ steps.modules-dir.outputs.dir }}/([^/]+)/.*,\1,p' \
+              | sort -u)
+
+            printf '%s' "$MODULE_NAMES" \
+              | jq -rcRs 'split("\n") | map(select(. != ""))'
+
+            MODULES_JSON=$(printf '%s' "$MODULE_NAMES" \
+              | jq -rcRs 'split("\n") | map(select(. != ""))')
+          fi
+
+          echo "::endgroup::"
+
+          echo "modules=$MODULES_JSON" | tee -a "$GITHUB_OUTPUT"
+
+  tag-and-push:
+    needs: detect-changes
+    if: ${{ !(needs.detect-changes.outputs.modules == '' || needs.detect-changes.outputs.modules == '[]') }}
+    name: tag-and-push
+    strategy:
+      matrix:
+        MODULE: ${{ fromJSON(needs.detect-changes.outputs.modules) }}
+    uses: rx-refill-reminders/pipeline/.github/workflows/tag-and-push.yml@tag-and-push/v0
+    with:
+      JOB_NAME: (${{ matrix.MODULE }}) tag-and-push
+      TAG_PREFIX: ${{ matrix.MODULE }}/v
+      FLOATING_TAGS: true
+    secrets:
+      APP_CLIENT_ID: ${{ secrets.WRITER_APP_CLIENT_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.WRITER_APP_PRIVATE_KEY }}

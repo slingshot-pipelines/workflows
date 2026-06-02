@@ -1,0 +1,74 @@
+name: deploy-libraries
+
+on:
+  workflow_call:
+    inputs:
+      COMPONENT:
+        type: string
+        required: true
+    secrets:
+      WRITER_APP_CLIENT_ID:
+        required: false
+      WRITER_APP_PRIVATE_KEY:
+        required: false
+
+permissions:
+  contents: write
+  pull-requests: read
+  id-token: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  tag-and-release:
+    runs-on: ubuntu-latest
+    name: (${{ inputs.COMPONENT }}) tag-and-release
+    steps:
+      -
+        name: Fetch app token
+        id: fetch-app-token
+        uses: rx-refill-reminders/pipeline/.github/actions/github-app-token@github-app-token/v0
+        with:
+          app-client-id: ${{ secrets.WRITER_APP_CLIENT_ID }}
+          app-private-key: ${{ secrets.WRITER_APP_PRIVATE_KEY }}
+      -
+        uses: actions/checkout@v6
+        with:
+          token: ${{ steps.fetch-app-token.outputs.token || github.token }}
+          fetch-depth: 0
+      -
+        name: Parse component info
+        id: component-info
+        uses: rx-refill-reminders/pipeline/.github/actions/component-info@component-info/v0
+        with:
+          component: ${{ inputs.COMPONENT }}
+      -
+        name: Pick tag prefix
+        id: pick-tag-prefix
+        env:
+          COMPONENT_INFO: ${{ steps.component-info.outputs.info }}
+        run: |
+          TAG_PREFIX=$(echo "$COMPONENT_INFO" | jq -rc '.["tag-prefix"]')
+          if [[ -z "$TAG_PREFIX" ]]; then
+            >&2 echo "Missing required field 'tag-prefix'"
+            exit 1
+          fi
+
+          echo "tag-prefix=$TAG_PREFIX" | tee -a "$GITHUB_OUTPUT"
+      -
+        name: Pick next version
+        uses: lucaspopp0/semantic-version@v0
+        id: next-version
+        with:
+          tag-prefix: ${{ steps.pick-tag-prefix.outputs.tag-prefix }}
+      -
+        name: Tag and push
+        uses: lucaspopp0/tag-and-push@v0
+        env:
+          GITHUB_TOKEN: ${{ steps.fetch-app-token.outputs.token || github.token }}
+        with:
+          tag: ${{ steps.next-version.outputs.next-patch-tag }}
+          release: true

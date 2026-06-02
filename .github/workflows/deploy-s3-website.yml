@@ -1,0 +1,188 @@
+name: deploy-s3-website
+
+on:
+
+  workflow_call:
+    inputs:
+      COMPONENT:
+        type: string
+        required: true
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+
+  build-matrix:
+    name: (${{ inputs.COMPONENT }}) build-matrix
+    runs-on: ubuntu-latest
+    outputs:
+      component-path: ${{ steps.extract-component-info.outputs.path }}
+      deployments: ${{ steps.list-deployments.outputs.deployments }}
+    steps:
+      -
+        uses: actions/checkout@v6
+      -
+        name: Get component info
+        id: component-info
+        uses: rx-refill-reminders/pipeline/.github/actions/component-info@component-info/v0
+        with:
+          component: ${{ inputs.COMPONENT }}
+      -
+        name: Extract component path
+        id: extract-component-info
+        env:
+          COMPONENT_INFO: ${{ steps.component-info.outputs.info }}
+        run: |
+          COMPONENT_PATH=$(echo "$COMPONENT_INFO" | jq -rc '.path // ""')
+          if [[ -z "$COMPONENT_PATH" ]]; then
+            >&2 echo "Could not determine component path"
+            exit 1
+          fi
+
+          echo "path=$COMPONENT_PATH" | tee -a "$GITHUB_OUTPUT"
+      -
+        name: List deployments
+        id: list-deployments
+        working-directory: ${{ steps.extract-component-info.outputs.path }}
+        run: |
+          DEPLOYMENTS=$(find deployments \
+            -name 'deployment.yml' \
+            -mindepth 2 \
+            -maxdepth 2 \
+            | sed -nE 's|deployments/([^/]+)/deployment.yml|\1|p' \
+            | sort -u \
+            | jq -Rrcs 'split("\n") | map(select(. != ""))')
+          
+          echo "deployments=$DEPLOYMENTS" | tee -a "$GITHUB_OUTPUT"
+
+  deploy:
+    needs:
+      - build-matrix
+    name: (${{ inputs.COMPONENT }}) deploy (${{ matrix.DEPLOYMENT }})
+    runs-on: ubuntu-latest
+    if: ${{ needs.build-matrix.outputs.deployments != '[]' }}
+    strategy:
+      matrix:
+        DEPLOYMENT: ${{ fromJSON(needs.build-matrix.outputs.deployments) }}
+    steps:
+      -
+        uses: actions/checkout@v6
+      -
+        name: Get component info
+        id: component-info
+        uses: rx-refill-reminders/pipeline/.github/actions/component-info@component-info/v0
+        with:
+          component: ${{ inputs.COMPONENT }}
+      -
+        name: Extract component metadata
+        id: extract-component-info
+        env:
+          COMPONENT_INFO: ${{ steps.component-info.outputs.info }}
+        run: |
+          COMPONENT_PATH=$(echo "$COMPONENT_INFO" | jq -rc '.path // ""')
+          if [[ -z "$COMPONENT_PATH" ]]; then
+            >&2 echo "Could not determine component path"
+            exit 1
+          fi
+
+          echo "path=$COMPONENT_PATH" | tee -a "$GITHUB_OUTPUT"
+      -
+        name: Parse deployment info
+        id: deployment-info
+        working-directory: ${{ steps.extract-component-info.outputs.path }}
+        env:
+          DEPLOYMENT_FILE: deployments/${{ matrix.DEPLOYMENT }}/deployment.yml
+        run: |
+          ASSUME_ROLE_ARN=$(cat "$DEPLOYMENT_FILE" | yq '.["assume-role-arn"] // ""')
+          if [[ -z "$ASSUME_ROLE_ARN" ]]; then
+            >&2 echo "::error file=$DEPLOYMENT_FILE::Missing key 'assume-role-arn'"
+            exit 1
+          fi
+          
+          S3_BUCKET=$(cat "$DEPLOYMENT_FILE" | yq '.["s3-bucket"] // ""')
+          if [[ -z "$S3_BUCKET" ]]; then
+            >&2 echo "::error file=$DEPLOYMENT_FILE::Missing key 's3-bucket'"
+            exit 1
+          fi
+          
+          CF_DISTRIBUTION=$(cat "$DEPLOYMENT_FILE" | yq '.["cf-distribution"] // ""')
+          if [[ -z "$CF_DISTRIBUTION" ]]; then
+            >&2 echo "::error file=$DEPLOYMENT_FILE::Missing key 'cf-distribution'"
+            exit 1
+          fi
+
+          {
+            echo "assume-role-arn=$ASSUME_ROLE_ARN";
+            echo "s3-bucket=$S3_BUCKET";
+            echo "cf-distribution=$CF_DISTRIBUTION";
+          } | tee -a "$GITHUB_OUTPUT"
+      -
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ${{ steps.extract-component-info.outputs.path }}/package.json
+          cache: npm
+          cache-dependency-path: ${{ steps.extract-component-info.outputs.path }}/package-lock.json
+      -
+        name: Install dependencies
+        working-directory: ${{ steps.extract-component-info.outputs.path }}
+        run: |
+          npm ci
+      -
+        name: Compile website
+        working-directory: ${{ steps.extract-component-info.outputs.path }}
+        env:
+          DEPLOYMENT_FILE: deployments/${{ matrix.DEPLOYMENT }}/deployment.yml
+        run: |
+          echo "::group::Load environment variables from deployment file"
+
+          KEYS=$(cat "$DEPLOYMENT_FILE" | yq '.env // {} | keys | .[]')
+          while IFS='' read -r KEY && [[ -n "$KEY" ]]; do
+            VALUE=$(cat "$DEPLOYMENT_FILE" \
+              | yq '.env // {} | .["'"$KEY"'"]')
+
+            echo "$KEY=$VALUE"
+            declare -x "$KEY=$VALUE"
+            done <<< "$KEYS"
+
+          echo "::endgroup::"
+
+          make build
+      -
+        name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ steps.deployment-info.outputs.assume-role-arn }}
+          aws-region: us-east-1
+      -
+        name: Upload to S3
+        working-directory: ${{ steps.extract-component-info.outputs.path }}
+        env:
+          BUCKET_NAME: ${{ steps.deployment-info.outputs.s3-bucket }}
+        run: |
+          # Upload static assets with long cache
+          aws s3 sync ./dist "s3://${BUCKET_NAME}/" \
+            --delete \
+            --cache-control "public, max-age=31536000, immutable" \
+            --exclude "*.html" \
+            --exclude "manifest.json"
+
+          # Upload HTML and manifest with no cache
+          aws s3 sync ./dist "s3://${BUCKET_NAME}/" \
+            --delete \
+            --cache-control "public, max-age=0, must-revalidate" \
+            --include "*.html" \
+            --include "manifest.json"
+      -
+        name: Invalidate CloudFront cache
+        env:
+          DISTRIBUTION_ID: ${{ steps.deployment-info.outputs.cf-distribution }}
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${DISTRIBUTION_ID}" \
+            --paths "/*"

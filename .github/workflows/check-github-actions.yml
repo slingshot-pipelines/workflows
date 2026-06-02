@@ -1,0 +1,36 @@
+name: check-github-actions
+
+on:
+  workflow_call:
+    inputs:
+      COMPONENT:
+        required: true
+        type: string
+    secrets:
+      WRITER_APP_CLIENT_ID:
+        required: false
+      WRITER_APP_PRIVATE_KEY:
+        required: false
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  lint:
+    name: (${{ inputs.COMPONENT }}) actionlint
+    runs-on: ubuntu-latest
+    steps:
+      -
+        uses: actions/checkout@v6
+      -
+        name: Check workflow files
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color

@@ -1,0 +1,127 @@
+name: terragrunt-plan
+
+on:
+
+  workflow_call:
+    inputs:
+      COMPONENT:
+        required: true
+        type: string
+      TERRAGRUNT_VERSION:
+        required: false
+        type: string
+      TERRAFORM_VERSION:
+        required: false
+        type: string
+      STACKS_DIR:
+        required: true
+        type: string
+      STACKS:
+        required: false
+        type: string
+        description: 'JSON array of stacks to plan'
+        default: '[]'
+      BUILD_CACHE_KEY:
+        required: false
+        type: string
+        description: If set, the action will try to restore a build cache using the specified key
+      BUILD_CACHE_PATH:
+        required: false
+        type: string
+        description: If set, the action will try to restore a build cache for the specified path
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  terragrunt-plan:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        STACK: ${{ fromJSON(inputs.STACKS) }}
+    name: (${{ inputs.COMPONENT }}) terragrunt-plan (${{ matrix.STACK }})
+    steps:
+      -
+        uses: actions/checkout@v6
+      -
+        name: Install Terraform & Terragrunt
+        id: tg-install
+        uses: rx-refill-reminders/pipeline/.github/actions/tg-install@tg-install/v0
+        with:
+          terraform-version: ${{ inputs.TERRAFORM_VERSION }}
+          terragrunt-version: ${{ inputs.TERRAGRUNT_VERSION }}
+      -
+        name: Get component info
+        id: component-info
+        uses: rx-refill-reminders/pipeline/.github/actions/component-info@component-info/v0
+        with:
+          component: ${{ inputs.COMPONENT }}
+      -
+        name: Extract required component info
+        id: extract-component-project
+        env:
+          COMPONENT_INFO: ${{ steps.component-info.outputs.info }}
+        run: |
+          COMPONENT_PROJECT=$(echo "$COMPONENT_INFO" | jq -rc '.project // ""')
+          if [[ -z "$COMPONENT_PROJECT" ]]; then
+            >&2 echo "Could not determine component project"
+            exit 1
+          fi
+
+          echo "project=$COMPONENT_PROJECT" | tee -a "$GITHUB_OUTPUT"
+      -
+        name: Get stack info
+        id: stack-info
+        uses: rx-refill-reminders/pipeline/.github/actions/tg-stack-info@tg-stack-info/v0
+        with:
+          INFO_FILE: ${{ inputs.STACKS_DIR }}/${{ matrix.STACK }}/stack.yml
+      -
+        name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ steps.stack-info.outputs.assume-role-arn }}
+          aws-region: us-east-1
+      -
+        name: Check for build cache inputs
+        id: check-build-cache-inputs
+        env:
+          INPUT_BUILD_CACHE_KEY: ${{ inputs.BUILD_CACHE_KEY }}
+          INPUT_BUILD_CACHE_PATH: ${{ inputs.BUILD_CACHE_PATH }}
+        run: |
+          if [[ -z "$INPUT_BUILD_CACHE_KEY" ]]; then
+            echo "No BUILD_CACHE_KEY provided"
+            exit 0
+          fi
+
+          if [[ -z "$INPUT_BUILD_CACHE_PATH" ]]; then
+            echo "No BUILD_CACHE_PATH provided"
+            exit 0
+          fi
+
+          echo "set=true" | tee -a "$GITHUB_OUTPUT"
+      -
+        name: Restore build cache
+        if: ${{ steps.check-build-cache-inputs.outputs.set == 'true' }}
+        uses: actions/cache/restore@v5
+        with:
+          key: ${{ inputs.BUILD_CACHE_KEY }}
+          path: ${{ inputs.BUILD_CACHE_PATH }}
+      -
+        name: terragrunt plan
+        uses: rx-refill-reminders/pipeline/.github/actions/tg-command@tg-command/v0
+        env:
+          PIPELINE_PROJECT: ${{ steps.extract-component-project.outputs.project }}
+          PIPELINE_COMPONENT: ${{ inputs.COMPONENT }}
+          TG_LOG_CUSTOM_FORMAT: "%level(case=upper,width=6,color=preset,suffix=' ')%prefix(path=short-relative,color=gradient,prefix='[',suffix='] ')%msg(path=relative)"
+        with:
+          working-directory: ${{ inputs.STACKS_DIR }}/${{ matrix.STACK }}
+          command: stack run plan
+          pr-comment: true

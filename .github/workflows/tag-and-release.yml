@@ -1,0 +1,79 @@
+name: tag-and-release
+
+on:
+  workflow_call:
+    inputs:
+      JOB_NAME:
+        type: string
+        required: true
+      TAG_PREFIX:
+        required: true
+        type: string
+      FLOATING_TAGS:
+        type: boolean
+        required: false
+        default: false
+    secrets:
+      APP_CLIENT_ID:
+        required: false
+      APP_PRIVATE_KEY:
+        required: false
+
+permissions:
+  contents: write
+  pull-requests: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  tag-and-release:
+    runs-on: ubuntu-latest
+    name: ${{ inputs.JOB_NAME }}
+    steps:
+      -
+        name: Fetch app token
+        id: fetch-app-token
+        uses: rx-refill-reminders/pipeline/.github/actions/github-app-token@github-app-token/v0
+        with:
+          app-client-id: ${{ secrets.APP_CLIENT_ID }}
+          app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
+      -
+        uses: actions/checkout@v6
+        with:
+          token: ${{ steps.fetch-app-token.outputs.token || github.token }}
+          fetch-depth: 0
+      -
+        name: Pick next version
+        uses: lucaspopp0/semantic-version@v0
+        id: next-version
+        with:
+          tag-prefix: ${{ inputs.TAG_PREFIX }}
+      -
+        name: Tag and push (patch version)
+        uses: lucaspopp0/tag-and-push@v0
+        env:
+          GITHUB_TOKEN: ${{ steps.fetch-app-token.outputs.token || github.token }}
+        with:
+          tag: ${{ steps.next-version.outputs.next-patch-tag }}
+          release: true
+      -
+        name: Tag and push (minor version)
+        if: inputs.FLOATING_TAGS
+        uses: lucaspopp0/tag-and-push@v0
+        env:
+          GITHUB_TOKEN: ${{ steps.fetch-app-token.outputs.token || github.token }}
+        with:
+          tag: ${{ steps.next-version.outputs.next-minor-tag }}
+          release: false
+      -
+        name: Tag and push (major version)
+        if: inputs.FLOATING_TAGS
+        uses: lucaspopp0/tag-and-push@v0
+        env:
+          GITHUB_TOKEN: ${{ steps.fetch-app-token.outputs.token || github.token }}
+        with:
+          tag: ${{ steps.next-version.outputs.next-major-tag }}
+          release: false

@@ -1,0 +1,131 @@
+name: deploy-lambda
+
+on:
+  workflow_call:
+    inputs:
+      COMPONENT:
+        type: string
+        required: true
+    secrets:
+      WRITER_APP_CLIENT_ID:
+        required: false
+      WRITER_APP_PRIVATE_KEY:
+        required: false
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  build:
+    name: (${{ inputs.COMPONENT }}) build
+    outputs:
+      build-cache-key: ${{ steps.pick-build-cache-params.outputs.cache-key }}
+      build-cache-path: ${{ steps.pick-build-cache-params.outputs.cache-path }}
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Fetch app token
+        id: fetch-app-token
+        uses: rx-refill-reminders/pipeline/.github/actions/github-app-token@github-app-token/v0
+        with:
+          app-client-id: ${{ secrets.WRITER_APP_CLIENT_ID }}
+          app-private-key: ${{ secrets.WRITER_APP_PRIVATE_KEY }}
+      -
+        uses: actions/checkout@v6
+        with:
+          token: ${{ steps.fetch-app-token.outputs.token || github.token }}
+      -
+        name: Component info
+        id: component-info
+        uses: rx-refill-reminders/pipeline/.github/actions/component-info@component-info/v0
+        with:
+          component: ${{ inputs.COMPONENT }}
+      -
+        name: Parse relevant component info
+        id: parse-component-info
+        env:
+          COMPONENT: ${{ inputs.COMPONENT }}
+          COMPONENT_INFO: ${{ steps.component-info.outputs.info }}
+        run: |
+          COMPONENT_PATH=$(echo "$COMPONENT_INFO" | jq -rc '.path')
+          if [[ -z "$COMPONENT_PATH" ]]; then
+            >&2 echo "Error determining component path"
+            exit 1
+          fi
+
+          SOURCE_PATH=$(echo "$COMPONENT_INFO" | jq -rc '.["src-path"]')
+          if [[ -z "$SOURCE_PATH" ]]; then
+            >&2 echo "Error determining source path"
+            exit 1
+          fi
+
+          echo "src-path=$COMPONENT_PATH/$SOURCE_PATH" | tee -a "$GITHUB_OUTPUT"
+
+          BUILD_PATH=$(echo "$COMPONENT_INFO" | jq -rc '.["build-path"]')
+          if [[ -z "$BUILD_PATH" ]]; then
+            >&2 echo "Error determining build path"
+            exit 1
+          fi
+
+          echo "build-path=$COMPONENT_PATH/$BUILD_PATH" | tee -a "$GITHUB_OUTPUT"
+
+          INFRA_PATH=$(echo "$COMPONENT_INFO" | jq -rc '.["infra-path"]')
+          if [[ -z "$INFRA_PATH" ]]; then
+            >&2 echo "Error determining infra path"
+            exit 1
+          fi
+
+          echo "infra-path=$COMPONENT_PATH/$INFRA_PATH" | tee -a "$GITHUB_OUTPUT"
+
+          SRC_LANG=$(echo "$COMPONENT_INFO" | jq -rc '.language')
+          if [[ -z "$COMPONENT_INFO" ]]; then
+            >&2 echo "Error determining source language"
+            exit 1
+          fi
+
+          echo "language=$SRC_LANG" | tee -a "$GITHUB_OUTPUT"
+      -
+        uses: actions/setup-go@v6
+        if: ${{ steps.component-info.outputs.language == 'go' }}
+        with:
+          go-version-file: ${{ steps.parse-component-info.outputs.src-path }}/go.mod
+          cache-dependency-path: ${{ steps.parse-component-info.outputs.src-path }}/go.sum
+      -
+        name: Build executable
+        working-directory: ${{ steps.parse-component-info.outputs.src-path }}
+        run: |
+          make build
+      -
+        name: Pick build cache parameters
+        id: pick-build-cache-params
+        env:
+          CACHE_KEY: ${{ inputs.COMPONENT }}-${{ github.run_id }}-${{ github.run_attempt }}
+          CACHE_DIR: ${{ steps.parse-component-info.outputs.build-path }}
+        run: |
+          echo "cache-key=$CACHE_KEY" | tee -a "$GITHUB_OUTPUT"
+          echo "cache-path=$CACHE_DIR" | tee -a "$GITHUB_OUTPUT"
+      -
+        name: Cache build output
+        id: cache-build-output
+        uses: actions/cache/save@v5
+        with:
+          key: ${{ steps.pick-build-cache-params.outputs.cache-key }}
+          path: ${{ steps.pick-build-cache-params.outputs.cache-path }}
+  
+  infra:
+    needs:
+      - build
+    uses: rx-refill-reminders/pipeline/.github/workflows/deploy-terragrunt-infra.yml@deploy-terragrunt-infra/v0
+    with:
+      COMPONENT: ${{ inputs.COMPONENT }}
+      ALL: true
+      BUILD_CACHE_KEY: ${{ needs.build.outputs.build-cache-key }}
+      BUILD_CACHE_PATH: ${{ needs.build.outputs.build-cache-path }}
+    secrets: inherit

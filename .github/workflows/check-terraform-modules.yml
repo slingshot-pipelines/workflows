@@ -1,0 +1,64 @@
+name: check-terraform-modules
+
+on:
+  workflow_call:
+    inputs:
+      COMPONENT:
+        type: string
+        required: true
+      TERRAFORM_VERSION:
+        type: string
+        required: true
+      TERRAGRUNT_VERSION:
+        type: string
+        required: true
+    secrets:
+      WRITER_APP_CLIENT_ID:
+        required: false
+      WRITER_APP_PRIVATE_KEY:
+        required: false
+
+permissions:
+  contents: read
+  id-token: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  lint-terraform-modules:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        uses: actions/checkout@v6
+      -
+        name: Components info
+        id: components-info
+        uses: rx-refill-reminders/pipeline/.github/actions/components-info@components-info/v0
+      -
+        name: Pick modules dir
+        id: pick-modules-dir
+        env:
+          MODULES_DIR: ${{ fromJSON(steps.components-info.outputs.info)[inputs.COMPONENT].path }}
+        run: |
+          if [[ -z "$MODULES_DIR" ]]; then
+            >&2 echo "Error determining modules directory"
+            exit 1
+          fi
+
+          echo "modules-dir=$MODULES_DIR" | tee -a "$GITHUB_OUTPUT"
+      -
+        name: Install Terraform & Terragrunt
+        uses: rx-refill-reminders/pipeline/.github/actions/tg-install@tg-install/v0
+        with:
+          terraform-version: ${{ inputs.TERRAFORM_VERSION }}
+          terragrunt-version: ${{ inputs.TERRAGRUNT_VERSION }}
+      -
+        name: Lint Terraform modules
+        uses: rx-refill-reminders/pipeline/.github/actions/tf-modules-lint@tf-modules-lint/v0
+        with:
+          modules-dir: ${{ steps.pick-modules-dir.outputs.modules-dir }}
+          gh-app-client-id: ${{ secrets.WRITER_APP_CLIENT_ID }}
+          gh-app-private-key: ${{ secrets.WRITER_APP_PRIVATE_KEY }}

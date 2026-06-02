@@ -1,0 +1,136 @@
+name: check-terragrunt-infra
+
+on:
+  workflow_call:
+    inputs:
+      COMPONENT:
+        type: string
+        required: true
+      TERRAFORM_VERSION:
+        type: string
+        required: true
+      TERRAGRUNT_VERSION:
+        type: string
+        required: true
+      ALL:
+        type: boolean
+        required: false
+        default: false
+      BUILD_CACHE_KEY:
+        required: false
+        type: string
+        description: If set, the action will try to restore a build cache using the specified key
+      BUILD_CACHE_PATH:
+        required: false
+        type: string
+        description: If set, the action will try to restore a build cache for the specified path
+    secrets:
+      WRITER_APP_CLIENT_ID:
+        required: false
+      WRITER_APP_PRIVATE_KEY:
+        required: false
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  build-matrix:
+    name: (${{ inputs.COMPONENT }}) terragrunt-matrix
+    runs-on: ubuntu-latest
+    outputs:
+      changes: ${{ steps.build-matrix.outputs.stacks-changed }}
+      units-dir: ${{ steps.pick-infra-dirs.outputs.units-dir }}
+      stacks-dir: ${{ steps.pick-infra-dirs.outputs.stacks-dir }}
+    steps:
+      -
+        uses: actions/checkout@v6
+      -
+        name: Components info
+        id: components-info
+        uses: rx-refill-reminders/pipeline/.github/actions/components-info@components-info/v0
+      -
+        name: Pick infra directories
+        id: pick-infra-dirs
+        env:
+          COMPONENT: ${{ inputs.COMPONENT }}
+          COMPONENTS_INFO: ${{ steps.components-info.outputs.info }}
+          INFRA_DIR: ${{ fromJSON(steps.components-info.outputs.info)[inputs.COMPONENT].path }}
+        run: |
+          COMPONENT_INFO=$(echo "$COMPONENTS_INFO" \
+            | jq -rc --arg component "$COMPONENT" \
+              '.[$component]')
+
+          COMPONENT_TYPE=$(echo "$COMPONENT_INFO" | jq -rc '.type')
+          if [[ -z "$COMPONENT_TYPE" ]]; then
+            >&2 echo "Error determining component type"
+            exit 1
+          fi
+
+          COMPONENT_PATH=$(echo "$COMPONENT_INFO" | jq -rc '.path')
+          if [[ -z "$COMPONENT_PATH" ]]; then
+            >&2 echo "Error determining component path"
+            exit 1
+          fi
+
+          if [[ "$COMPONENT_TYPE" == "lambda" ]]; then
+            echo "units-dir=$COMPONENT_PATH/infra/units" | tee -a "$GITHUB_OUTPUT"
+            echo "stacks-dir=$COMPONENT_PATH/infra/stacks" | tee -a "$GITHUB_OUTPUT"
+          else
+            echo "units-dir=$COMPONENT_PATH/units" | tee -a "$GITHUB_OUTPUT"
+            echo "stacks-dir=$COMPONENT_PATH/stacks" | tee -a "$GITHUB_OUTPUT"
+          fi
+      -
+        name: Detect changes
+        uses: rx-refill-reminders/pipeline/.github/actions/tg-matrix@tg-matrix/v0
+        id: build-matrix
+        with:
+          units-dir: ${{ steps.pick-infra-dirs.outputs.units-dir }}
+          stacks-dir: ${{ steps.pick-infra-dirs.outputs.stacks-dir }}
+          all: ${{ inputs.ALL }}
+
+  lint:
+    name: (${{ inputs.COMPONENT }}) terragrunt-lint
+    needs:
+      - build-matrix
+    if: ${{ (needs.build-matrix.outputs.changes || '[]') != '[]' }}
+    runs-on: ubuntu-latest
+    steps:
+      -
+        uses: actions/checkout@v6
+      -
+        name: Install Terraform/Terragrunt
+        uses: rx-refill-reminders/pipeline/.github/actions/tg-install@tg-install/v0
+        with:
+          terragrunt-version: ${{ inputs.TERRAGRUNT_VERSION }}
+          terraform-version: ${{ inputs.TERRAFORM_VERSION }}
+      -
+        name: Lint Terraform & Terragrunt code
+        uses: rx-refill-reminders/pipeline/.github/actions/tg-lint@tg-lint/v0
+        with:
+          gh-app-client-id: ${{ secrets.WRITER_APP_CLIENT_ID }}
+          gh-app-private-key: ${{ secrets.WRITER_APP_PRIVATE_KEY }}
+          units-dir: ${{ needs.build-matrix.outputs.units-dir }}
+          stacks-dir: ${{ needs.build-matrix.outputs.stacks-dir }}
+
+  plan:
+    name: terragrunt-plan (${{ inputs.COMPONENT }})
+    needs: 
+      - build-matrix
+      - lint
+    if: ${{ (needs.build-matrix.outputs.changes || '') != '[]' }}
+    uses: rx-refill-reminders/pipeline/.github/workflows/terragrunt-plan.yml@terragrunt-plan/v0
+    with:
+      COMPONENT: ${{ inputs.COMPONENT }}
+      TERRAGRUNT_VERSION: ${{ inputs.TERRAGRUNT_VERSION }}
+      TERRAFORM_VERSION: ${{ inputs.TERRAFORM_VERSION }}
+      STACKS_DIR: ${{ needs.build-matrix.outputs.stacks-dir }}
+      STACKS: ${{ needs.build-matrix.outputs.changes }}
+      BUILD_CACHE_KEY: ${{ inputs.BUILD_CACHE_KEY }}
+      BUILD_CACHE_PATH: ${{ inputs.BUILD_CACHE_PATH }}

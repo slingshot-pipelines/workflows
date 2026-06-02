@@ -1,0 +1,130 @@
+name: (internal) release
+
+on:
+
+  push:
+    branches: [main]
+    
+  workflow_dispatch:
+    inputs:
+      ALL:
+        type: boolean
+        required: true
+        description: 'Bump all?'
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+  packages: read
+  actions: read
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      namespaces: ${{ steps.namespaces.outputs.namespaces }}
+    steps:
+      -
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      -
+        uses: dorny/paths-filter@v4
+        id: paths-filter
+        if: ${{ inputs.ALL != true }}
+        with:
+          list-files: json
+          filters: |
+            actions:
+              - '.github/actions/*/**'
+            workflows:
+              - '.github/workflows/*'
+      -
+        name: List all files for bump
+        id: list-all
+        if: ${{ inputs.ALL == true }}
+        run: |
+          ACTIONS_FILES=$(find .github/actions -mindepth 2 \
+            | jq -rcsR 'split("\n") | map(select(. != ""))')
+          
+          echo "actions-files=$ACTIONS_FILES" | tee -a "$GITHUB_OUTPUT"
+
+          WORKFLOWS_FILES=$(find .github/workflows -type f \
+            | jq -rcsR 'split("\n") | map(select(. != ""))')
+          
+          echo "workflows-files=$WORKFLOWS_FILES" | tee -a "$GITHUB_OUTPUT"
+      -
+        name: Output namespaces
+        id: namespaces
+        env:
+          ACTIONS_FILES: ${{ steps.list-all.outputs.actions-files || steps.paths-filter.outputs.actions_files }}
+          WORKFLOWS_FILES: ${{ steps.list-all.outputs.workflows-files || steps.paths-filter.outputs.workflows_files }}
+        run: |
+          NAMESPACES=""
+
+          echo "::group::.github/actions/**"
+
+          ACTIONS_FILES_LINES=$(printf '%s' "$ACTIONS_FILES" | jq -rc '.[]')
+          if [[ -z "$ACTIONS_FILES_LINES" ]]; then
+            echo "No actions changed"
+          else
+            ACTION_NAMES=$(printf '%s' "$ACTIONS_FILES_LINES" \
+              | sed -nE 's,\.github/actions/([^/]+)/.*,\1,p' \
+              | sort -u)
+
+            printf '%s' "$ACTION_NAMES" \
+              | jq -rcRs 'split("\n") | map(select(. != ""))'
+
+            NAMESPACES="${NAMESPACES}${ACTION_NAMES}"$'\n'
+          fi
+
+          echo "::endgroup::"
+
+          echo "::group::.github/workflows/**"
+
+          WORKFLOWS_FILES_LINES=$(printf '%s' "$WORKFLOWS_FILES" | jq -rc '.[]')
+          if [[ -z "$WORKFLOWS_FILES_LINES" ]]; then
+            echo "No workflows changed"
+          else
+            WORKFLOW_NAMES=$(printf '%s' "$WORKFLOWS_FILES_LINES" \
+              | sed -nE 's,\.github/workflows/(.+)\.ya?ml,\1,p' \
+              | sort -u)
+
+            printf '%s' "$WORKFLOW_NAMES" \
+              | jq -rcRs 'split("\n") | map(select(. != ""))'
+
+            NAMESPACES="${NAMESPACES}${WORKFLOW_NAMES}"$'\n'
+          fi
+
+          echo "::endgroup::"
+
+          NAMESPACES_JSON=$(printf '%s' "$NAMESPACES" \
+            | jq -rcRs 'split("\n") | map(select(. != "" and (startswith("internal") | not)))')
+
+          echo "namespaces=$NAMESPACES_JSON" | tee -a "$GITHUB_OUTPUT"
+  
+  tag-and-push:
+    needs: detect-changes
+    name: tag-and-push
+    if: ${{ !(needs.detect-changes.outputs.namespaces == '' || needs.detect-changes.outputs.namespaces == '[]') }}
+    uses: ./.github/workflows/tag-and-release.yml
+    strategy:
+      matrix:
+        NAMESPACE: ${{ fromJSON(needs.detect-changes.outputs.namespaces) }}
+    with:
+      JOB_NAME: ${{ matrix.NAMESPACE }}
+      TAG_PREFIX: ${{ matrix.NAMESPACE }}/v
+      FLOATING_TAGS: true
+    secrets:
+      APP_CLIENT_ID: ${{ secrets.WRITER_APP_CLIENT_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.WRITER_APP_PRIVATE_KEY }}

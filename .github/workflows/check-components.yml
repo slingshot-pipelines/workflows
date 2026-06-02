@@ -1,0 +1,75 @@
+name: check-components
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  lint:
+    name: (.components) lint
+    runs-on: ubuntu-latest
+    steps:
+      -
+        uses: actions/checkout@v6
+      -
+        name: Validate project info.yml
+        if: ${{ !cancelled() }}
+        run: |
+          if ! [[ -f ".components/info.yml" ]]; then
+            echo "::error::Missing .components/info.yml"
+            exit 1
+          fi
+
+          PROJECT_NAME=$(cat ".components/info.yml" | yq '.project')
+          if [[ -z "$PROJECT_NAME" ]]; then
+            echo "::error file=.components/info.yml::Missing required key 'project'"
+          fi
+      -
+        name: Validate component info.yml files
+        if: ${{ !cancelled() }}
+        run: |          
+          INFO_FILES=$(find .components \
+            -name 'info.yml' \
+            -type f \
+            -mindepth 2 \
+            -maxdepth 2 \
+            | sort -u)
+
+          FAILED=false
+          while IFS='' read -r INFO_FILE && [[ -n "$INFO_FILE" ]]; do
+            echo "::group::Validating $INFO_FILE"
+            COMPONENT_JSON=$(cat "$INFO_FILE" | yq -o=json -I0 '.')
+
+            COMPONENT_NAME=$(echo "$COMPONENT_JSON" | jq -rc '.component')
+            if [[ -z "$COMPONENT_NAME" ]]; then
+              echo "::error file=$INFO_FILE::Missing required key 'component'"
+              FAILED=true
+            fi
+
+            COMPONENT_NAME=$(echo "$COMPONENT_JSON" | jq -rc '.type')
+            if [[ -z $(echo "$COMPONENT_JSON" | jq -rc '.type') ]]; then
+              echo "::error file=$INFO_FILE::Missing required key 'type'"
+              FAILED=true
+            fi
+
+            COMPONENT_PATH=$(echo "$COMPONENT_JSON" | jq -rc '.path')
+            if [[ -z "$COMPONENT_PATH" ]]; then
+              echo "::error file=$INFO_FILE::Missing required key 'path'"
+              FAILED=true
+            fi
+
+            echo "::endgroup::"
+          done <<< "$INFO_FILES"
+
+          if [[ "$FAILED" == "true" ]]; then
+            exit 1
+          fi
