@@ -12,7 +12,7 @@ on:
       TERRAGRUNT_VERSION:
         type: string
         required: true
-      ALL:
+      TRIGGER_ALL:
         type: boolean
         required: false
         default: false
@@ -52,21 +52,17 @@ jobs:
       -
         uses: actions/checkout@v6
       -
-        name: Components info
-        id: components-info
-        uses: rx-refill-reminders/pipeline/.github/actions/components-info@components-info/v0
+        name: Component info
+        id: component-info
+        uses: slingshot-pipelines/action-component-info@v0
+        with:
+          component: ${{ inputs.COMPONENT }}
       -
-        name: Pick infra directories
-        id: pick-infra-dirs
+        name: Pick directories
+        id: pick-component-dirs
         env:
-          COMPONENT: ${{ inputs.COMPONENT }}
-          COMPONENTS_INFO: ${{ steps.components-info.outputs.info }}
-          INFRA_DIR: ${{ fromJSON(steps.components-info.outputs.info)[inputs.COMPONENT].path }}
+          COMPONENT_INFO: ${{ steps.component-info.outputs.INFO }}
         run: |
-          COMPONENT_INFO=$(echo "$COMPONENTS_INFO" \
-            | jq -rc --arg component "$COMPONENT" \
-              '.[$component]')
-
           COMPONENT_TYPE=$(echo "$COMPONENT_INFO" | jq -rc '.type')
           if [[ -z "$COMPONENT_TYPE" ]]; then
             >&2 echo "Error determining component type"
@@ -88,12 +84,12 @@ jobs:
           fi
       -
         name: Detect changes
-        uses: rx-refill-reminders/pipeline/.github/actions/tg-matrix@tg-matrix/v0
+        uses: slingshot-pipelines/action-terragrunt/matrix@v0
         id: build-matrix
         with:
-          units-dir: ${{ steps.pick-infra-dirs.outputs.units-dir }}
-          stacks-dir: ${{ steps.pick-infra-dirs.outputs.stacks-dir }}
-          all: ${{ inputs.ALL }}
+          UNITS_DIR: ${{ steps.pick-component-dirs.outputs.units-dir }}
+          STACKS_DIR: ${{ steps.pick-component-dirs.outputs.stacks-dir }}
+          TRIGGER_ALL: ${{ inputs.TRIGGER_ALL }}
 
   lint:
     name: (${{ inputs.COMPONENT }}) terragrunt-lint
@@ -106,18 +102,18 @@ jobs:
         uses: actions/checkout@v6
       -
         name: Install Terraform/Terragrunt
-        uses: rx-refill-reminders/pipeline/.github/actions/tg-install@tg-install/v0
+        uses: slingshot-pipelines/action-terragrunt/install@v0
         with:
-          terragrunt-version: ${{ inputs.TERRAGRUNT_VERSION }}
-          terraform-version: ${{ inputs.TERRAFORM_VERSION }}
+          TERRAGRUNT_VERSION: ${{ inputs.TERRAGRUNT_VERSION }}
+          TERRAFORM_VERSION: ${{ inputs.TERRAFORM_VERSION }}
       -
         name: Lint Terraform & Terragrunt code
-        uses: rx-refill-reminders/pipeline/.github/actions/tg-lint@tg-lint/v0
+        uses: slingshot-pipelines/action-terragrunt/lint@v0
         with:
-          gh-app-client-id: ${{ secrets.WRITER_APP_CLIENT_ID }}
-          gh-app-private-key: ${{ secrets.WRITER_APP_PRIVATE_KEY }}
-          units-dir: ${{ needs.build-matrix.outputs.units-dir }}
-          stacks-dir: ${{ needs.build-matrix.outputs.stacks-dir }}
+          UNITS_DIR: ${{ needs.build-matrix.outputs.units-dir }}
+          STACKS_DIR: ${{ needs.build-matrix.outputs.stacks-dir }}
+          APP_CLIENT_ID: ${{ secrets.WRITER_APP_CLIENT_ID }}
+          APP_PRIVATE_KEY: ${{ secrets.WRITER_APP_PRIVATE_KEY }}
 
   plan:
     name: terragrunt-plan (${{ inputs.COMPONENT }})

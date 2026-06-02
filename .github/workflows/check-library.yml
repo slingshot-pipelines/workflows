@@ -30,29 +30,26 @@ jobs:
       -
         name: Fetch app token
         id: fetch-app-token
-        uses: rx-refill-reminders/pipeline/.github/actions/github-app-token@github-app-token/v0
+        uses: slingshot-pipelines/action-optional-app-token@v0
         with:
-          app-client-id: ${{ secrets.WRITER_APP_CLIENT_ID }}
-          app-private-key: ${{ secrets.WRITER_APP_PRIVATE_KEY }}
+          CLIENT_ID: ${{ secrets.WRITER_APP_CLIENT_ID }}
+          PRIVATE_KEY: ${{ secrets.WRITER_APP_PRIVATE_KEY }}
       -
         uses: actions/checkout@v6
         with:
           token: ${{ steps.fetch-app-token.outputs.token || github.token }}
       -
-        name: Components info
-        id: components-info
-        uses: rx-refill-reminders/pipeline/.github/actions/components-info@components-info/v0
+        name: Component info
+        id: component-info
+        uses: slingshot-pipelines/action-component-info@v0
+        with:
+          component: ${{ inputs.COMPONENT }}
       -
         name: Extract info for this component as outputs
-        id: component-info
+        id: extract-component-info
         env:
-          COMPONENT: ${{ inputs.COMPONENT }}
-          COMPONENTS_INFO: ${{ steps.components-info.outputs.info }}
+          COMPONENT_INFO: ${{ steps.component-info.outputs.INFO }}
         run: |
-          COMPONENT_INFO=$(echo "$COMPONENTS_INFO" \
-            | jq -rc --arg component "$COMPONENT" \
-              '.[$component]')
-          
           COMPONENT_PATH=$(echo "$COMPONENT_INFO" | jq -rc '.path')
           if [[ -z "$COMPONENT_PATH" ]]; then
             >&2 echo "Error determining component directory"
@@ -72,8 +69,8 @@ jobs:
         uses: actions/setup-go@v6
         if: ${{ steps.component-info.outputs.language == 'go' }}
         with:
-          go-version-file: ${{ steps.component-info.outputs.path }}/go.mod
-          cache-dependency-path: ${{ steps.component-info.outputs.path }}/go.mod
+          go-version-file: ${{ steps.extract-component-info.outputs.path }}/go.mod
+          cache-dependency-path: ${{ steps.extract-component-info.outputs.path }}/go.mod
       -
         name: Lint source
         working-directory: ${{ steps.component-info.outputs.path }}

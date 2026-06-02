@@ -30,10 +30,10 @@ jobs:
       -
         name: Fetch app token
         id: fetch-app-token
-        uses: rx-refill-reminders/pipeline/.github/actions/github-app-token@github-app-token/v0
+        uses: slingshot-pipelines/action-optional-app-token@v0
         with:
-          app-client-id: ${{ secrets.WRITER_APP_CLIENT_ID }}
-          app-private-key: ${{ secrets.WRITER_APP_PRIVATE_KEY }}
+          CLIENT_ID: ${{ secrets.WRITER_APP_CLIENT_ID }}
+          PRIVATE_KEY: ${{ secrets.WRITER_APP_PRIVATE_KEY }}
       -
         uses: actions/checkout@v6
         with:
@@ -41,14 +41,14 @@ jobs:
       -
         name: Get component info
         id: component-info
-        uses: rx-refill-reminders/pipeline/.github/actions/component-info@component-info/v0
+        uses: slingshot-pipelines/action-component-info@v0
         with:
           component: ${{ inputs.COMPONENT }}
       -
         name: Extract component path
         id: extract-component-info
         env:
-          COMPONENT_INFO: ${{ steps.component-info.outputs.info }}
+          COMPONENT_INFO: ${{ steps.component-info.outputs.INFO }}
         run: |
           COMPONENT_PATH=$(echo "$COMPONENT_INFO" | jq -rc '.path // ""')
           if [[ -z "$COMPONENT_PATH" ]]; then
