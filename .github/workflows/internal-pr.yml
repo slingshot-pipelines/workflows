@@ -1,12 +1,7 @@
 name: (internal) pr
 
 on:
-  workflow_call:
-    secrets:
-      WRITER_APP_CLIENT_ID:
-        required: false
-      WRITER_APP_PRIVATE_KEY:
-        required: false
+  pull_request:
 
 defaults:
   run:
