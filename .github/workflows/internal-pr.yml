@@ -52,6 +52,13 @@ jobs:
       COMPONENT: ${{ matrix.COMPONENT }}
     secrets: inherit
 
+  docs:
+    needs:
+      - detect-changes
+    if: ${{ contains(needs.detect-changes.outputs.changed-component-types, '"github-actions"') }}
+    uses: ./.github/workflows/internal-docs.yml
+    secrets: inherit
+
   pr-ready:
     if: ${{ always() }}
     needs:
