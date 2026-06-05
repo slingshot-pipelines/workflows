@@ -1,0 +1,62 @@
+name: (internal) docs
+
+on:
+
+  workflow_call:
+    secrets:
+      WRITER_APP_CLIENT_ID:
+        required: false
+      WRITER_APP_PRIVATE_KEY:
+        required: false
+
+permissions:
+  contents: read
+  pull-requests: read
+  id-token: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Fetch app token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ secrets.WRITER_APP_CLIENT_ID }}
+          private-key: ${{ secrets.WRITER_APP_PRIVATE_KEY }}
+      -
+        uses: actions/checkout@v6
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+      -
+        uses: actions/setup-go@v6
+        with:
+          go-version: 1.25.5
+      -
+        name: Install auto-doc
+        run: |
+          go install github.com/tj-actions/auto-doc/v3@latest
+      -
+        name: Generate docs
+        run: |
+          ./scripts/docs.sh
+      -
+        name: Check for changes
+        uses: tj-actions/verify-changed-files@v20
+        id: detect-changes
+      -
+        name: Commit changes if detected
+        if: ${{ steps.detect-changes.outputs.files_changed == 'true' }}
+        uses: planetscale/ghcommit-action@v0.2.20
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        with:
+          commit_message: "docs"
+          repo: ${{ github.repository }}
+          branch: ${{ github.head_ref }}

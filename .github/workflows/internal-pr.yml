@@ -1,12 +1,7 @@
 name: (internal) pr
 
 on:
-  workflow_call:
-    secrets:
-      WRITER_APP_CLIENT_ID:
-        required: false
-      WRITER_APP_PRIVATE_KEY:
-        required: false
+  pull_request:
 
 defaults:
   run:
@@ -50,6 +45,13 @@ jobs:
         COMPONENT: ${{ fromJSON(needs.detect-changes.outputs.changed-components-by-type)['github-actions'].*.component }}
     with:
       COMPONENT: ${{ matrix.COMPONENT }}
+    secrets: inherit
+
+  docs:
+    needs:
+      - detect-changes
+    if: ${{ contains(needs.detect-changes.outputs.changed-component-types, '"github-actions"') }}
+    uses: ./.github/workflows/internal-docs.yml
     secrets: inherit
 
   pr-ready:
