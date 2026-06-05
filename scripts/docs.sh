@@ -79,11 +79,20 @@ NEW_README_CONTENT=""
 START_TAG="<!-- SUPERDOCS START -->"
 END_TAG="<!-- SUPERDOCS END -->"
 
+FOUND_FIRST_LINE=false
 FOUND_START_TAG=false
 FOUND_END_TAG=false
 
 while IFS= read -r LINE || [[ -n "$LINE" ]]; do
-  if [[ "$FOUND_START_TAG" == "false" ]]; then
+  if [[ "$FOUND_FIRST_LINE" == "false" ]]; then
+    if [[ -n "$LINE" ]]; then
+      FOUND_FIRST_LINE=true
+      NEW_README_CONTENT="$LINE"
+      continue
+    fi
+
+    continue
+  elif [[ "$FOUND_START_TAG" == "false" ]]; then
     if [[ "$LINE" == "$START_TAG" ]]; then
       FOUND_START_TAG=true
     fi
