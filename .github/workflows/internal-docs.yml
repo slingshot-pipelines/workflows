@@ -26,10 +26,11 @@ jobs:
       -
         name: Fetch app token
         id: app-token
-        uses: actions/create-github-app-token@v3
+        uses: slingshot-pipelines/action-optional-app-token@v0
         with:
-          client-id: ${{ secrets.WRITER_APP_CLIENT_ID }}
-          private-key: ${{ secrets.WRITER_APP_PRIVATE_KEY }}
+          CLIENT_ID: ${{ secrets.WRITER_APP_CLIENT_ID }}
+          PRIVATE_KEY: ${{ secrets.WRITER_APP_PRIVATE_KEY }}
+          REQUIRED: true
       -
         uses: actions/checkout@v6
         with:
@@ -60,3 +61,4 @@ jobs:
           commit_message: "docs"
           repo: ${{ github.repository }}
           branch: ${{ github.head_ref }}
+          file_pattern: "README.md docs/*/README.md"
