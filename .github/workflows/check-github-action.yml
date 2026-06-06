@@ -155,3 +155,4 @@ jobs:
           commit_message: "generated changes"
           repo: ${{ github.repository }}
           branch: ${{ github.head_ref }}
+          file_pattern: "**/*.*"
