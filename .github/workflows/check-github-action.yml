@@ -112,13 +112,27 @@ jobs:
         with:
           args: "${{ steps.parse-action-yml.outputs.meta-file }} -color"
       -
+        uses: actions/setup-go@v6
+        if: inputs.GENERATE_DOCS
+        with:
+          go-version: 1.25.5
+          cache: false
+      -
+        name: Install auto-doc
+        if: inputs.GENERATE_DOCS
+        run: |
+          go get -u github.com/tj-actions/auto-doc/v3
+      -
         name: Generate docs
         if: inputs.GENERATE_DOCS
-        uses: tj-actions/auto-doc@v3
-        with:
-          filename: ${{ steps.parse-action-yml.outputs.meta-file }}
-          output: ${{ steps.parse-component-info.outputs.action-root }}
-          col_max_words: 20
+        env:
+          ACTION_ROOT: ${{ steps.parse-component-info.outputs.action-root }}
+          ACTION_YML: ${{ steps.parse-action-yml.outputs.meta-file }}
+        run: |
+          auto-doc \
+            --filename "$ACTION_YML" \
+            --output "$ACTION_ROOT/README.md" \
+            --colMaxWords 20
       -
         uses: actions/setup-node@v6
         if: ${{ steps.parse-component-info.outputs.source-language == 'node' }}
