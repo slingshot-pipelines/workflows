@@ -54,7 +54,7 @@ jobs:
         env:
           COMPONENT_INFO: ${{ steps.lookup-component-info.outputs.info }}
         run: |
-          ACTION_ROOT=$(echo "$COMPONENT_INFO" | jq -rc '.action-root')
+          ACTION_ROOT=$(echo "$COMPONENT_INFO" | jq -rc '.["action-root"]')
           if [[ -z "$ACTION_ROOT" ]]; then
             >&2 echo "Error parsing action root"
             exit 1
@@ -62,7 +62,7 @@ jobs:
 
           echo "action-root=$ACTION_ROOT" | tee -a "$GITHUB_OUTPUT"
 
-          ACTION_SOURCE_LANGUAGE=$(echo "$COMPONENT_INFO" | jq -rc '.source-language')
+          ACTION_SOURCE_LANGUAGE=$(echo "$COMPONENT_INFO" | jq -rc '.["source-language"]')
           if [[ -z "$ACTION_SOURCE_LANGUAGE" ]]; then
             echo "::warning::Unable to parse source language"
           fi
