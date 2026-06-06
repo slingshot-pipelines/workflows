@@ -1,0 +1,157 @@
+name: check-github-action
+
+on:
+  workflow_call:
+    inputs:
+      COMPONENT:
+        required: true
+        type: string
+      GENERATE_DOCS:
+        type: boolean
+        default: true
+        required: false
+    secrets:
+      WRITER_APP_CLIENT_ID:
+        required: false
+      WRITER_APP_PRIVATE_KEY:
+        required: false
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  lint-and-docs:
+    name: (${{ inputs.COMPONENT }}) lint-and-docs
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Fetch app token
+        id: app-token
+        uses: slingshot-pipelines/action-optional-app-token@v0
+        with:
+          CLIENT_ID: ${{ secrets.WRITER_APP_CLIENT_ID }}
+          PRIVATE_KEY: ${{ secrets.WRITER_APP_PRIVATE_KEY }}
+      -
+        uses: actions/checkout@v6
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+      -
+        name: Lookup component info
+        id: lookup-component-info
+        uses: slingshot-pipelines/action-component-info@v1
+        with:
+          component: ${{ inputs.COMPONENT }}
+      -
+        name: Parse component info
+        id: parse-component-info
+        env:
+          COMPONENT_INFO: ${{ steps.lookup-component-info.outputs.info }}
+        run: |
+          ACTION_ROOT=$(echo "$COMPONENT_INFO" | jq -rc '.action-root')
+          if [[ -z "$ACTION_ROOT" ]]; then
+            >&2 echo "Error parsing action root"
+            exit 1
+          fi
+
+          echo "action-root=$ACTION_ROOT" | tee -a "$GITHUB_OUTPUT"
+
+          ACTION_SOURCE_LANGUAGE=$(echo "$COMPONENT_INFO" | jq -rc '.source-language')
+          if [[ -z "$ACTION_SOURCE_LANGUAGE" ]]; then
+            echo "::warning::Unable to parse source language"
+          fi
+
+          echo "source-language=$ACTION_SOURCE_LANGUAGE" | tee -a "$GITHUB_OUTPUT"
+      -
+        name: Parse action.yml
+        id: parse-action-yml
+        env:
+          ACTION_ROOT: ${{ steps.parse-component-info.outputs.action-root }}
+        run: |
+          ACTION_META_FILE=$(find "${ACTION_ROOT}" -name 'action.yml' -or -name 'action.yaml' | head -n 1)
+          if [[ -z "${ACTION_META_FILE}" ]]; then
+            >&2 echo "No action.yml or action.yaml found"
+            exit 1
+          fi
+
+          echo "meta-file=${ACTION_META_FILE}"
+      -
+        name: Check Makefile targets
+        id: check-makefile-targets
+        working-directory: ${{ steps.parse-component-info.outputs.action-root }}
+        run: |
+          HAS_LINT_TARGET=false
+          if make -q lint 2>/dev/null; (( $? < 2 )); then
+            HAS_LINT_TARGET=true
+          fi
+
+          HAS_TEST_TARGET=false
+          if make -q unit-test 2>/dev/null; (( $? < 2 )); then
+            HAS_TEST_TARGET=true
+          fi
+
+          HAS_BUILD_TARGET=false
+          if make -q build 2>/dev/null; (( $? < 2 )); then
+            HAS_BUILD_TARGET=true
+          fi
+
+          {
+            echo "lint=$HAS_LINT_TARGET";
+            echo "test=$HAS_TEST_TARGET";
+            echo "build=$HAS_BUILD_TARGET";
+          } | tee -a "$GITHUB_OUTPUT"
+      -
+        name: Run actionlint
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: "${{ steps.parse-action-yml.outputs.meta-file }} -color"
+      -
+        name: Generate docs
+        if: inputs.GENERATE_DOCS
+        uses: tj-actions/auto-doc@v3
+        with:
+          filename: ${{ steps.parse-action-yml.outputs.meta-file }}
+          output: ${{ steps.parse-component-info.outputs.action-root }}
+          col_max_words: 20
+      -
+        uses: actions/setup-node@v6
+        if: ${{ steps.parse-component-info.outputs.source-language == 'node' }}
+        with:
+          node-version-file: ${{ steps.parse-component-info.outputs.action-root }}/package.json
+          cache-dependency-path: ${{ steps.parse-component-info.outputs.action-root }}/package-lock.json
+          cache: npm
+      -
+        if: ${{ steps.check-makefile-targets.outputs.lint == 'true' }}
+        working-directory: ${{ steps.parse-component-info.outputs.action-root }}
+        run: |
+          make lint
+      -
+        if: ${{ steps.check-makefile-targets.outputs.test == 'true' }}
+        working-directory: ${{ steps.parse-component-info.outputs.action-root }}
+        run: |
+          make unit-test
+      -
+        if: ${{ steps.check-makefile-targets.outputs.build == 'true' }}
+        working-directory: ${{ steps.parse-component-info.outputs.action-root }}
+        run: |
+          make build
+      -
+        name: Check for changes
+        id: detect-changes
+        uses: tj-actions/verify-changed-files@v20
+      -
+        name: Commit changes if detected
+        if: ${{ steps.detect-changes.outputs.files_changed == 'true' }}
+        uses: planetscale/ghcommit-action@v0.2.20
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token || github.token }}
+        with:
+          commit_message: "generated changes"
+          repo: ${{ github.repository }}
+          branch: ${{ github.head_ref }}
