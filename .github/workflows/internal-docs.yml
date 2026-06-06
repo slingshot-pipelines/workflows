@@ -61,3 +61,4 @@ jobs:
           commit_message: "docs"
           repo: ${{ github.repository }}
           branch: ${{ github.head_ref }}
+          file_pattern: "README.md docs/*/README.md"
