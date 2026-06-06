@@ -1,6 +1,13 @@
-# {WORKFLOW_TITLE}
+# release-terraform-modules
 
 Workflow definition: [release-terraform-modules.yml](https://github.com/slingshot-pipelines/workflows/blob/main/.github/workflows/release-terraform-modules.yml)
+
+Tags and releases changed Terraform modules for a component.
+It detects which modules were modified (or all modules when `ALL` is set), then tags
+each one with a semver patch release and optional floating major/minor tags via
+`tag-and-release`.
+Use this workflow to publish new module versions that consumers can pin in their
+Terragrunt configurations.
 
 ## Inputs
 

@@ -1,6 +1,14 @@
-# {WORKFLOW_TITLE}
+# check-github-actions
 
 Workflow definition: [check-github-actions.yml](https://github.com/slingshot-pipelines/workflows/blob/main/.github/workflows/check-github-actions.yml)
+
+Call this workflow as part of pull-request checks to validate workflow YAML before
+changes are merged.
+
+Runs [actionlint](https://github.com/rhysd/actionlint) against a component's GitHub
+Actions workflow files to catch syntax errors, invalid expressions, and other common
+CI configuration mistakes.
+
 
 ## Inputs
 

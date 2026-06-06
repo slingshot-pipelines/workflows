@@ -1,6 +1,13 @@
-# {WORKFLOW_TITLE}
+# check-terragrunt-infra
 
 Workflow definition: [check-terragrunt-infra.yml](https://github.com/slingshot-pipelines/workflows/blob/main/.github/workflows/check-terragrunt-infra.yml)
+
+Validates a component's Terragrunt infrastructure on pull requests.
+It detects which stacks have changed (or checks all stacks when `ALL` is set), lints
+the Terraform and Terragrunt code, then runs `terragrunt-plan` on each affected stack
+and posts plan output as PR comments.
+Optionally restores a build cache so Lambda deployment artifacts are available during
+planning.
 
 ## Inputs
 

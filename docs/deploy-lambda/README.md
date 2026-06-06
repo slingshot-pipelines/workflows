@@ -1,6 +1,13 @@
-# {WORKFLOW_TITLE}
+# deploy-lambda
 
 Workflow definition: [deploy-lambda.yml](https://github.com/slingshot-pipelines/workflows/blob/main/.github/workflows/deploy-lambda.yml)
+
+Builds and deploys a Lambda component end to end.
+It compiles the source executable, caches the build output, then delegates to
+`deploy-terragrunt-infra` to apply the component's Terragrunt stacks with the cached
+artifacts available.
+Use this workflow to ship Lambda function code and its supporting infrastructure
+together.
 
 ## Inputs
 

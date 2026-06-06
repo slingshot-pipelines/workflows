@@ -1,6 +1,12 @@
-# {WORKFLOW_TITLE}
+# deploy-s3-website
 
 Workflow definition: [deploy-s3-website.yml](https://github.com/slingshot-pipelines/workflows/blob/main/.github/workflows/deploy-s3-website.yml)
+
+Builds and deploys a static website component to S3 and invalidates its CloudFront
+distribution.
+It discovers deployment targets from `deployments/*/deployment.yml`, builds the site
+with environment-specific variables for each target, syncs assets to the configured S3
+bucket with appropriate cache headers, and triggers a CloudFront cache invalidation.
 
 ## Inputs
 

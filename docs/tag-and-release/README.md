@@ -1,6 +1,14 @@
-# {WORKFLOW_TITLE}
+# tag-and-release
 
 Workflow definition: [tag-and-release.yml](https://github.com/slingshot-pipelines/workflows/blob/main/.github/workflows/tag-and-release.yml)
+
+A reusable workflow for creating semver git tags and GitHub releases.
+Given a tag prefix, it computes the next patch version, pushes the tag, and creates a
+release.
+When `FLOATING_TAGS` is enabled, it also updates major and minor floating tags so
+consumers can pin to a version range.
+Other release workflows (such as `release-library` and `release-terraform-modules`)
+call this workflow internally.
 
 ## Inputs
 

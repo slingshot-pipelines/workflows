@@ -1,6 +1,12 @@
-# {WORKFLOW_TITLE}
+# release-library
 
 Workflow definition: [release-library.yml](https://github.com/slingshot-pipelines/workflows/blob/main/.github/workflows/release-library.yml)
+
+Tags and releases a shared library component using semantic versioning.
+It reads the component's `tag-prefix` from metadata, computes the next patch version
+from existing git tags, creates the tag, pushes it, and publishes a GitHub release.
+Use this workflow to cut a new library version after changes are merged to the default
+branch.
 
 ## Inputs
 

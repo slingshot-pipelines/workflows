@@ -1,6 +1,12 @@
-# {WORKFLOW_TITLE}
+# check-lambda
 
 Workflow definition: [check-lambda.yml](https://github.com/slingshot-pipelines/workflows/blob/main/.github/workflows/check-lambda.yml)
+
+Runs the full CI pipeline for a Lambda component: lint source code, run unit tests,
+build the executable, and cache the build output for downstream jobs.
+After the source checks pass, it delegates to `check-terragrunt-infra` to lint and
+plan the component's infrastructure, ensuring both application code and IaC are
+valid before deployment.
 
 ## Inputs
 

@@ -1,6 +1,13 @@
-# {WORKFLOW_TITLE}
+# terragrunt-plan
 
 Workflow definition: [terragrunt-plan.yml](https://github.com/slingshot-pipelines/workflows/blob/main/.github/workflows/terragrunt-plan.yml)
+
+Plans Terragrunt infrastructure changes for a set of stacks in parallel.
+For each stack it assumes the AWS role defined in `stack.yml`, optionally restores a
+build cache, runs `terragrunt stack run plan`, and posts the plan output as a pull
+request comment.
+This is a low-level building block typically called by `check-terragrunt-infra` rather
+than invoked directly.
 
 ## Inputs
 

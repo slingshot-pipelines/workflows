@@ -1,6 +1,12 @@
-# {WORKFLOW_TITLE}
+# check-terraform-modules
 
 Workflow definition: [check-terraform-modules.yml](https://github.com/slingshot-pipelines/workflows/blob/main/.github/workflows/check-terraform-modules.yml)
+
+Lints reusable Terraform modules for a component using the specified Terraform and
+Terragrunt versions.
+It resolves the modules directory from component metadata and runs formatting,
+validation, and other static checks via the `tf-modules-lint` action.
+Use this workflow to catch module-level issues before modules are tagged and released.
 
 ## Inputs
 

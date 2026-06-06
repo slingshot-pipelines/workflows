@@ -1,6 +1,12 @@
-# {WORKFLOW_TITLE}
+# terragrunt-apply
 
 Workflow definition: [terragrunt-apply.yml](https://github.com/slingshot-pipelines/workflows/blob/main/.github/workflows/terragrunt-apply.yml)
+
+Applies Terragrunt infrastructure changes for a set of stacks in parallel.
+For each stack it assumes the AWS role defined in `stack.yml`, optionally restores a
+build cache, and runs `terragrunt stack run apply`.
+This is a low-level building block typically called by `deploy-terragrunt-infra` rather
+than invoked directly.
 
 ## Inputs
 

@@ -1,6 +1,12 @@
-# {WORKFLOW_TITLE}
+# check-s3-website
 
 Workflow definition: [check-s3-website.yml](https://github.com/slingshot-pipelines/workflows/blob/main/.github/workflows/check-s3-website.yml)
+
+Runs CI checks for a static website component destined for S3/CloudFront hosting.
+It installs Node.js dependencies, optionally runs `make lint` and `make unit-test`
+if those targets exist, then builds the site with `npm run build`.
+Use this workflow to verify that a frontend component compiles successfully before
+deployment.
 
 ## Inputs
 

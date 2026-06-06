@@ -1,6 +1,12 @@
-# {WORKFLOW_TITLE}
+# terragrunt-unlock
 
 Workflow definition: [terragrunt-unlock.yml](https://github.com/slingshot-pipelines/workflows/blob/main/.github/workflows/terragrunt-unlock.yml)
+
+Manually removes a stuck Terragrunt state lock for a given stack and unit.
+It assumes the AWS role for the target stack, then deletes the lockfile from the S3
+state bucket.
+Use this workflow as a recovery step when a previous Terragrunt run was interrupted
+and left a lock that blocks subsequent plan or apply operations.
 
 ## Inputs
 

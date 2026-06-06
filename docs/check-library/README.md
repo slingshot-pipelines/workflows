@@ -1,6 +1,12 @@
-# {WORKFLOW_TITLE}
+# check-library
 
 Workflow definition: [check-library.yml](https://github.com/slingshot-pipelines/workflows/blob/main/.github/workflows/check-library.yml)
+
+Runs CI checks for a shared library component: lint source code and run unit tests.
+It resolves the component's path and language from `.components` metadata, sets up
+the appropriate toolchain (e.g. Go), and fails if linting produces uncommitted
+changes.
+Use this workflow to verify library code quality on pull requests.
 
 ## Inputs
 

@@ -1,6 +1,12 @@
-# {WORKFLOW_TITLE}
+# deploy-terragrunt-infra
 
 Workflow definition: [deploy-terragrunt-infra.yml](https://github.com/slingshot-pipelines/workflows/blob/main/.github/workflows/deploy-terragrunt-infra.yml)
+
+Applies Terragrunt infrastructure changes for a component.
+It detects which stacks have changed (or applies all stacks when `ALL` is set), then
+runs `terragrunt-apply` on each affected stack in parallel.
+Optionally restores a build cache so pre-built artifacts (such as Lambda binaries) are
+available during apply.
 
 ## Inputs
 
