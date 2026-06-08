@@ -27,7 +27,7 @@ jobs:
         name: Download schemas
         id: download-json-schemas
         run: |
-          echo "::group::Install project.schema.json"
+          echo "Installing project.schema.json..."
             
           PROJECT_SCHEMA_URL="https://raw.githubusercontent.com/slingshot-pipelines/jsonschemas/main/schemas/project/v1/project.schema.json"
           PROJECT_SCHEMA_DIR="${RUNNER_TEMP}/project-schema"
@@ -38,10 +38,8 @@ jobs:
 
           echo "project-schema-file=$PROJECT_SCHEMA_FILE" | tee -a "$GITHUB_OUTPUT"
 
-          echo "::endgroup::"
-
-
-          echo "::group::Install component.schema.json"
+          echo ""
+          echo "Installing component.schema.json..."
           
           COMPONENT_SCHEMA_URL="https://raw.githubusercontent.com/slingshot-pipelines/jsonschemas/main/schemas/component/v1/component.schema.json"
           COMPONENT_SCHEMA_DIR="${RUNNER_TEMP}/component-schema"
@@ -51,8 +49,6 @@ jobs:
           jsonschema install "${COMPONENT_SCHEMA_URL}" "${COMPONENT_SCHEMA_FILE}"
           
           echo "component-schema-file=$COMPONENT_SCHEMA_FILE" | tee -a "$GITHUB_OUTPUT"
-
-          echo "::endgroup::"
       -
         name: Validate components
         env:
