@@ -80,7 +80,7 @@ jobs:
             exit 1
           fi
 
-          echo "meta-file=${ACTION_META_FILE}"
+          echo "meta-file=${ACTION_META_FILE}" | tee -a "$GITHUB_OUTPUT"
       -
         name: Check Makefile targets
         id: check-makefile-targets
