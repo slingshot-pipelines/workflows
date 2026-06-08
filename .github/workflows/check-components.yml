@@ -78,7 +78,7 @@ jobs:
           FAILED=false
           while IFS='' read -r COMPONENT_FILE && [[ -n "$COMPONENT_FILE" ]]; do
             echo "::group::Validating $COMPONENT_FILE"
-            jsonschema validate "${COMPONENT_SCHEMA}" "${COMPONENT_FILE}" --http || (FAILED=true)
+            jsonschema validate "${COMPONENT_SCHEMA}" "${COMPONENT_FILE}" --http || FAILED=true
             echo "::endgroup::"
           done <<< "$COMPONENT_FILES"
 
