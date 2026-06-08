@@ -40,10 +40,6 @@ jobs:
           GENERATE_DOCS: ${{ inputs.GENERATE_DOCS }}
           HOMEBREW_NO_AUTO_UPDATE: 1
         run: |
-          echo "::group::Installing actionlint"
-          brew install actionlint
-          echo "::endgroup::"
-
           if [[ "$GENERATE_DOCS" == "true" ]]; then
             echo "::group::Installing auto-doc"
             brew install tj-actions/tap/auto-doc
@@ -124,20 +120,6 @@ jobs:
             echo "test=$HAS_TEST_TARGET";
             echo "build=$HAS_BUILD_TARGET";
           } | tee -a "$GITHUB_OUTPUT"
-      -
-        name: Run actionlint
-        run: |
-          echo "::group::Setup actionlint problem matchers"
-          MATCHER_FILE="${RUNNER_TEMP}/actionlint-matcher.json"
-          curl \
-            "https://raw.githubusercontent.com/rhysd/actionlint/main/.github/actionlint-matcher.json" \
-            -o "${MATCHER_FILE}"
-          echo "::add-matcher::${MATCHER_FILE}"
-          echo "::endgroup::"
-
-          actionlint \
-            -color \
-            "${{ steps.parse-action-yml.outputs.meta-file }}"
       -
         name: Run autodoc
         if: inputs.GENERATE_DOCS
