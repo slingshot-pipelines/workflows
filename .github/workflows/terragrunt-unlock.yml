@@ -32,7 +32,7 @@ jobs:
       -
         name: Get stack info
         id: stack-info
-        uses: rx-refill-reminders/pipeline/.github/actions/tg-stack-info@tg-stack-info/v0
+        uses: slingshot-pipelines/action-terragrunt/stack-info@v0
         with:
           INFO_FILE: infra/stacks/${{ inputs.STACK }}/stack.yml
       -

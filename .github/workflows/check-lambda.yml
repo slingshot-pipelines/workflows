@@ -33,10 +33,10 @@ jobs:
       -
         name: Fetch app token
         id: fetch-app-token
-        uses: rx-refill-reminders/pipeline/.github/actions/github-app-token@github-app-token/v0
+        uses: slingshot-pipelines/action-optional-app-token@v0
         with:
-          app-client-id: ${{ secrets.WRITER_APP_CLIENT_ID }}
-          app-private-key: ${{ secrets.WRITER_APP_PRIVATE_KEY }}
+          CLIENT_ID: ${{ secrets.WRITER_APP_CLIENT_ID }}
+          PRIVATE_KEY: ${{ secrets.WRITER_APP_PRIVATE_KEY }}
       -
         uses: actions/checkout@v6
         with:
@@ -44,7 +44,7 @@ jobs:
       -
         name: Component info
         id: component-info
-        uses: rx-refill-reminders/pipeline/.github/actions/component-info@component-info/v0
+        uses: slingshot-pipelines/action-component-info@v1
         with:
           component: ${{ inputs.COMPONENT }}
       -
@@ -162,7 +162,7 @@ jobs:
   check-infra:
     needs:
       - lint-test-build
-    uses: rx-refill-reminders/pipeline/.github/workflows/check-terragrunt-infra.yml@check-terragrunt-infra/v0
+    uses: slingshot-pipelines/workflows/.github/workflows/check-terragrunt-infra.yml@check-terragrunt-infra/v0
     with:
       COMPONENT: ${{ inputs.COMPONENT }}
       ALL: true

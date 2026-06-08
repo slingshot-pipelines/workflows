@@ -36,10 +36,10 @@ jobs:
       -
         name: Fetch app token
         id: fetch-app-token
-        uses: rx-refill-reminders/pipeline/.github/actions/github-app-token@github-app-token/v0
+        uses: slingshot-pipelines/action-optional-app-token@v0
         with:
-          app-client-id: ${{ secrets.APP_CLIENT_ID }}
-          app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          CLIENT_ID: ${{ secrets.APP_CLIENT_ID }}
+          PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
       -
         uses: actions/checkout@v6
         with:
