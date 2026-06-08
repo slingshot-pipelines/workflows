@@ -32,14 +32,14 @@ jobs:
     needs:
       - detect-changes
     if: ${{ contains(needs.detect-changes.outputs.changed-component-types, '"components"') }}
-    uses: slingshot-pipelines/workflows/.github/workflows/check-components.yml@check-components/v0
+    uses: ./.github/workflows/check-components.yml
     secrets: inherit
 
   check-github-workflows:
     needs:
       - detect-changes
     if: ${{ contains(needs.detect-changes.outputs.changed-component-types, '"github-workflows"') }}
-    uses: slingshot-pipelines/workflows/.github/workflows/check-github-workflows.yml@check-github-workflows/v0
+    uses: ./.github/workflows/check-github-workflows.yml
     strategy:
       matrix:
         COMPONENT: ${{ fromJSON(needs.detect-changes.outputs.changed-components-by-type).github-workflows }}
