@@ -1,4 +1,4 @@
-name: check-jsonschemas
+name: check-json-schemas
 
 on:
   workflow_call:
