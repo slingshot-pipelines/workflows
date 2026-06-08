@@ -6,6 +6,12 @@ on:
       COMPONENT:
         type: string
         required: true
+      TERRAFORM_VERSION:
+        type: string
+        required: true
+      TERRAGRUNT_VERSION:
+        type: string
+        required: true
     secrets:
       WRITER_APP_CLIENT_ID:
         required: false
@@ -164,6 +170,8 @@ jobs:
       - lint-test-build
     uses: slingshot-pipelines/workflows/.github/workflows/check-terragrunt-infra.yml@check-terragrunt-infra/v0
     with:
+      TERRAFORM_VERSION: ${{ inputs.TERRAFORM_VERSION }}
+      TERRAGRUNT_VERSION: ${{ inputs.TERRAGRUNT_VERSION }}
       COMPONENT: ${{ inputs.COMPONENT }}
       ALL: true
       BUILD_CACHE_KEY: ${{ needs.lint-test-build.outputs.build-cache-key }}
