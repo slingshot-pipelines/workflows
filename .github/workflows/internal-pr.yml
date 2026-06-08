@@ -26,23 +26,23 @@ jobs:
       -
         name: Detect changed components
         id: changed-components
-        uses: rx-refill-reminders/pipeline/.github/actions/components-changed@components-changed/v0
+        uses: slingshot-pipelines/action-components-changed@v1
 
   components:
     needs:
       - detect-changes
     if: ${{ contains(needs.detect-changes.outputs.changed-component-types, '"components"') }}
-    uses: rx-refill-reminders/pipeline/.github/workflows/check-components.yml@check-components/v0
+    uses: slingshot-pipelines/workflows/.github/workflows/check-components.yml@check-components/v0
     secrets: inherit
 
-  github-actions:
+  github-workflows:
     needs:
       - detect-changes
-    if: ${{ contains(needs.detect-changes.outputs.changed-component-types, '"github-actions"') }}
-    uses: rx-refill-reminders/pipeline/.github/workflows/check-github-actions.yml@check-github-actions/v0
+    if: ${{ contains(needs.detect-changes.outputs.changed-component-types, '"github-workflows"') }}
+    uses: slingshot-pipelines/workflows/.github/workflows/check-github-actions.yml@check-github-workflows/v0
     strategy:
       matrix:
-        COMPONENT: ${{ fromJSON(needs.detect-changes.outputs.changed-components-by-type)['github-actions'].*.component }}
+        COMPONENT: ${{ fromJSON(needs.detect-changes.outputs.changed-components-by-type).github-workflows }}
     with:
       COMPONENT: ${{ matrix.COMPONENT }}
     secrets: inherit
@@ -59,7 +59,7 @@ jobs:
     needs:
       - detect-changes
       - components
-      - github-actions
+      - github-workflows
     runs-on: ubuntu-latest
     steps:
       -

@@ -30,7 +30,7 @@ jobs:
       -
         name: Get component info
         id: component-info
-        uses: rx-refill-reminders/pipeline/.github/actions/component-info@component-info/v0
+        uses: slingshot-pipelines/action-component-info@v1
         with:
           component: ${{ inputs.COMPONENT }}
       -
@@ -76,7 +76,7 @@ jobs:
       -
         name: Get component info
         id: component-info
-        uses: rx-refill-reminders/pipeline/.github/actions/component-info@component-info/v0
+        uses: slingshot-pipelines/action-component-info@v1
         with:
           component: ${{ inputs.COMPONENT }}
       -

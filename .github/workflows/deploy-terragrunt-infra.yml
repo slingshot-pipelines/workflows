@@ -40,7 +40,7 @@ jobs:
     name: (${{ inputs.COMPONENT }}) terragrunt-matrix
     runs-on: ubuntu-latest
     outputs:
-      changes: ${{ steps.build-matrix.outputs.stacks-changed }}
+      changes: ${{ steps.build-matrix.outputs.STACKS }}
       units-dir: ${{ steps.pick-infra-dirs.outputs.units-dir }}
       stacks-dir: ${{ steps.pick-infra-dirs.outputs.stacks-dir }}
     steps:
@@ -49,7 +49,7 @@ jobs:
       -
         name: Components info
         id: components-info
-        uses: rx-refill-reminders/pipeline/.github/actions/components-info@components-info/v0
+        uses: slingshot-pipelines/action-components-info@v1
       -
         name: Pick infra directories
         id: pick-infra-dirs
@@ -83,19 +83,19 @@ jobs:
           fi
       -
         name: Detect changes
-        uses: rx-refill-reminders/pipeline/.github/actions/tg-matrix@tg-matrix/v0
+        uses: slingshot-pipelines/action-terragrunt/matrix@v0
         id: build-matrix
         with:
-          units-dir: ${{ steps.pick-infra-dirs.outputs.units-dir }}
-          stacks-dir: ${{ steps.pick-infra-dirs.outputs.stacks-dir }}
-          all: ${{ inputs.ALL }}
+          UNITS_DIR: ${{ steps.pick-infra-dirs.outputs.units-dir }}
+          STACKS_DIR: ${{ steps.pick-infra-dirs.outputs.stacks-dir }}
+          TRIGGER_ALL: ${{ inputs.ALL }}
 
   apply:
     name: (${{ inputs.COMPONENT }}) terragrunt-apply
     needs: 
       - build-matrix
     if: ${{ (needs.build-matrix.outputs.changes || '') != '[]' }}
-    uses: rx-refill-reminders/pipeline/.github/workflows/terragrunt-apply.yml@terragrunt-plan/v0
+    uses: slingshot-pipelines/workflows/.github/workflows/terragrunt-apply.yml@terragrunt-apply/v0
     with:
       COMPONENT: ${{ inputs.COMPONENT }}
       TERRAGRUNT_VERSION: ${{ inputs.TERRAGRUNT_VERSION }}

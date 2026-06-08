@@ -36,7 +36,7 @@ jobs:
       -
         name: Components info
         id: components-info
-        uses: rx-refill-reminders/pipeline/.github/actions/components-info@components-info/v0
+        uses: slingshot-pipelines/action-components-info@v1
       -
         name: Pick modules dir
         id: pick-modules-dir
@@ -51,14 +51,14 @@ jobs:
           echo "modules-dir=$MODULES_DIR" | tee -a "$GITHUB_OUTPUT"
       -
         name: Install Terraform & Terragrunt
-        uses: rx-refill-reminders/pipeline/.github/actions/tg-install@tg-install/v0
+        uses: slingshot-pipelines/action-terragrunt/install@v0
         with:
-          terraform-version: ${{ inputs.TERRAFORM_VERSION }}
-          terragrunt-version: ${{ inputs.TERRAGRUNT_VERSION }}
+          TERRAFORM_VERSION: ${{ inputs.TERRAFORM_VERSION }}
+          TERRAGRUNT_VERSION: ${{ inputs.TERRAGRUNT_VERSION }}
       -
         name: Lint Terraform modules
-        uses: rx-refill-reminders/pipeline/.github/actions/tf-modules-lint@tf-modules-lint/v0
+        uses: slingshot-pipelines/action-terraform/lint@v0
         with:
-          modules-dir: ${{ steps.pick-modules-dir.outputs.modules-dir }}
-          gh-app-client-id: ${{ secrets.WRITER_APP_CLIENT_ID }}
-          gh-app-private-key: ${{ secrets.WRITER_APP_PRIVATE_KEY }}
+          MODULES_DIR: ${{ steps.pick-modules-dir.outputs.modules-dir }}
+          APP_CLIENT_ID: ${{ secrets.WRITER_APP_CLIENT_ID }}
+          APP_PRIVATE_KEY: ${{ secrets.WRITER_APP_PRIVATE_KEY }}

@@ -40,7 +40,7 @@ jobs:
       -
         name: Get component info
         id: component-info
-        uses: rx-refill-reminders/pipeline/.github/actions/component-info@component-info/v0
+        uses: slingshot-pipelines/action-component-info@v1
         with:
           component: ${{ inputs.COMPONENT }}
       -
@@ -111,7 +111,7 @@ jobs:
     strategy:
       matrix:
         MODULE: ${{ fromJSON(needs.detect-changes.outputs.modules) }}
-    uses: rx-refill-reminders/pipeline/.github/workflows/tag-and-push.yml@tag-and-push/v0
+    uses: slingshot-pipelines/workflows/.github/workflows/tag-and-release.yml@tag-and-release/v0
     with:
       JOB_NAME: (${{ matrix.MODULE }}) tag-and-push
       TAG_PREFIX: ${{ matrix.MODULE }}/v

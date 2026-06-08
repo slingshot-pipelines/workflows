@@ -54,14 +54,14 @@ jobs:
       -
         name: Install Terraform & Terragrunt
         id: tg-install
-        uses: rx-refill-reminders/pipeline/.github/actions/tg-install@tg-install/v0
+        uses: slingshot-pipelines/action-terragrunt/install@v0
         with:
-          terraform-version: ${{ inputs.TERRAFORM_VERSION }}
-          terragrunt-version: ${{ inputs.TERRAGRUNT_VERSION }}
+          TERRAFORM_VERSION: ${{ inputs.TERRAFORM_VERSION }}
+          TERRAGRUNT_VERSION: ${{ inputs.TERRAGRUNT_VERSION }}
       -
         name: Get component info
         id: component-info
-        uses: rx-refill-reminders/pipeline/.github/actions/component-info@component-info/v0
+        uses: slingshot-pipelines/action-component-info@v1
         with:
           component: ${{ inputs.COMPONENT }}
       -
@@ -80,7 +80,7 @@ jobs:
       -
         name: Get stack info
         id: stack-info
-        uses: rx-refill-reminders/pipeline/.github/actions/tg-stack-info@tg-stack-info/v0
+        uses: slingshot-pipelines/action-terragrunt/stack-info@v0
         with:
           INFO_FILE: ${{ inputs.STACKS_DIR }}/${{ matrix.STACK }}/stack.yml
       -
@@ -116,7 +116,7 @@ jobs:
           path: ${{ inputs.BUILD_CACHE_PATH }}
       -
         name: terragrunt plan
-        uses: rx-refill-reminders/pipeline/.github/actions/tg-command@tg-command/v0
+        uses: slingshot-pipelines/action-terragrunt/exec@v0
         env:
           PIPELINE_PROJECT: ${{ steps.extract-component-project.outputs.project }}
           PIPELINE_COMPONENT: ${{ inputs.COMPONENT }}

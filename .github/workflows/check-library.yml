@@ -30,10 +30,10 @@ jobs:
       -
         name: Fetch app token
         id: fetch-app-token
-        uses: rx-refill-reminders/pipeline/.github/actions/github-app-token@github-app-token/v0
+        uses: slingshot-pipelines/action-optional-app-token@v0
         with:
-          app-client-id: ${{ secrets.WRITER_APP_CLIENT_ID }}
-          app-private-key: ${{ secrets.WRITER_APP_PRIVATE_KEY }}
+          CLIENT_ID: ${{ secrets.WRITER_APP_CLIENT_ID }}
+          PRIVATE_KEY: ${{ secrets.WRITER_APP_PRIVATE_KEY }}
       -
         uses: actions/checkout@v6
         with:
@@ -41,7 +41,7 @@ jobs:
       -
         name: Components info
         id: components-info
-        uses: rx-refill-reminders/pipeline/.github/actions/components-info@components-info/v0
+        uses: slingshot-pipelines/action-components-info@v1
       -
         name: Extract info for this component as outputs
         id: component-info
