@@ -112,24 +112,23 @@ jobs:
         with:
           args: "${{ steps.parse-action-yml.outputs.meta-file }} -color"
       -
-        name: Install auto-doc
-        if: inputs.GENERATE_DOCS
-        env:
-          HOMEBREW_NO_AUTO_UPDATE: 1
-        run: |
-          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-          brew install tj-actions/tap/auto-doc
-      -
         name: Generate docs
         if: inputs.GENERATE_DOCS
         env:
           ACTION_ROOT: ${{ steps.parse-component-info.outputs.action-root }}
           ACTION_YML: ${{ steps.parse-action-yml.outputs.meta-file }}
         run: |
+          echo "::group::Installing auto-doc"
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install tj-actions/tap/auto-doc
+          echo "::endgroup::"
+
+          echo "::group::Running auto-doc"
           auto-doc \
             --filename "$ACTION_YML" \
             --output "$ACTION_ROOT/README.md" \
             --colMaxWords 20
+          echo "::endgroup::"
       -
         uses: actions/setup-node@v6
         if: ${{ steps.parse-component-info.outputs.source-language == 'node' }}
