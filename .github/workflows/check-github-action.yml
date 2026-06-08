@@ -112,16 +112,13 @@ jobs:
         with:
           args: "${{ steps.parse-action-yml.outputs.meta-file }} -color"
       -
-        uses: actions/setup-go@v6
-        if: inputs.GENERATE_DOCS
-        with:
-          go-version: 1.25.5
-          cache: false
-      -
         name: Install auto-doc
         if: inputs.GENERATE_DOCS
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
         run: |
-          go install github.com/tj-actions/auto-doc/v3
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          brew install tj-actions/tap/auto-doc
       -
         name: Generate docs
         if: inputs.GENERATE_DOCS
