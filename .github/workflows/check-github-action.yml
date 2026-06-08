@@ -130,7 +130,7 @@ jobs:
           echo "::group::Setup actionlint problem matchers"
           MATCHER_FILE="${RUNNER_TEMP}/actionlint-matcher.json"
           curl \
-            "https://raw.githubusercontent.com/rhysd/actionlint/main/.github/actionlint-matcher.json"
+            "https://raw.githubusercontent.com/rhysd/actionlint/main/.github/actionlint-matcher.json" \
             -o "${MATCHER_FILE}"
           echo "::add-matcher::${MATCHER_FILE}"
           echo "::endgroup::"
