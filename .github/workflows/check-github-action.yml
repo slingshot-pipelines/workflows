@@ -121,7 +121,7 @@ jobs:
         name: Install auto-doc
         if: inputs.GENERATE_DOCS
         run: |
-          go get -u github.com/tj-actions/auto-doc/v3
+          go install github.com/tj-actions/auto-doc/v3
       -
         name: Generate docs
         if: inputs.GENERATE_DOCS
