@@ -50,7 +50,7 @@ jobs:
   docs:
     needs:
       - detect-changes
-    if: ${{ contains(needs.detect-changes.outputs.changed-component-types, '"github-actions"') }}
+    if: ${{ contains(needs.detect-changes.outputs.changed-component-types, '"github-workflows"') }}
     uses: ./.github/workflows/internal-docs.yml
     secrets: inherit
 
