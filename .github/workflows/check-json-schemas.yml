@@ -51,19 +51,12 @@ jobs:
           COMPONENT_INFO: ${{ steps.lookup-component-info.outputs.info }}
         run: |
           COMPONENT_PATH=$(echo "$COMPONENT_INFO" | jq -rc '.["path"]')
-          if [[ -n "$COMPONENT_PATH" ]]; then
-            echo "paths=$COMPONENT_PATH" | tee -a "$GITHUB_OUTPUT"
-            exit 0
+          if [[ -z "$COMPONENT_PATH" ]]; then
+            >&2 echo "Missing required field: path"
+            exit 1
           fi
           
-          COMPONENT_PATHS=$(echo "$COMPONENT_INFO" | jq -rc '.["paths"] // [] | join(" ")')
-          if [[ -n "$COMPONENT_PATHS" ]]; then
-            echo "paths=$COMPONENT_PATHS" | tee -a "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          >&2 echo "No component paths found"
-          exit 1
+          echo "path=$COMPONENT_PATH" | tee -a "$GITHUB_OUTPUT"
       -
         name: Install jsonschema
         uses: slingshot-pipelines/action-brew-install@v0
@@ -72,11 +65,10 @@ jobs:
             sourcemeta/apps/jsonschema
       -
         name: Lint and format schemas
-        env:
-          SCHEMA_PATHS: ${{ steps.parse-component-info.outputs.paths }}
+        working-directory: ${{ steps.parse-component-info.outputs.path }}
         run: |
-          jsonschema lint ${SCHEMA_PATHS}
-          jsonschema fmt ${SCHEMA_PATHS}
+          make lint
+          make fmt
       -
         name: Check for changes
         id: detect-changes
