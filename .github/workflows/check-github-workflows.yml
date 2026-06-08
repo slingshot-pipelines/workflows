@@ -1,0 +1,45 @@
+name: check-github-workflows
+
+on:
+  workflow_call:
+    inputs:
+      COMPONENT:
+        required: true
+        type: string
+    secrets:
+      WRITER_APP_CLIENT_ID:
+        required: false
+      WRITER_APP_PRIVATE_KEY:
+        required: false
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  lint:
+    name: (${{ inputs.COMPONENT }}) lint
+    runs-on: ubuntu-latest
+    steps:
+      -
+        uses: actions/checkout@v6
+      -
+        name: Setup actionlint problem matchers
+        env:
+          MATCHERS_URL: https://raw.githubusercontent.com/rhysd/actionlint/main/.github/actionlint-matcher.json
+          MATCHERS_FILE: ${{ runner.temp }}/actionlint-matcher.json
+        run: |
+          curl "${MATCHERS_URL}" -o "${MATCHERS_FILE}"
+
+          echo "::add-matcher::${MATCHERS_FILE}"
+      -
+        name: Run actionlint
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color
