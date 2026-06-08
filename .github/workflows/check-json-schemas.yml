@@ -59,10 +59,7 @@ jobs:
           echo "path=$COMPONENT_PATH" | tee -a "$GITHUB_OUTPUT"
       -
         name: Install jsonschema
-        uses: slingshot-pipelines/action-brew-install@v0
-        with:
-          FORMULAS: |
-            sourcemeta/apps/jsonschema
+        uses: sourcemeta/jsonschema@v15.9.0
       -
         name: Lint and format schemas
         working-directory: ${{ steps.parse-component-info.outputs.path }}
