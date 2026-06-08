@@ -27,24 +27,10 @@ defaults:
 
 jobs:
 
-  lint-and-docs:
-    name: (${{ inputs.COMPONENT }}) lint-and-docs
+  lint-test-docs:
+    name: (${{ inputs.COMPONENT }}) lint-test-docs
     runs-on: ubuntu-latest
     steps:
-      -
-        name: Set up Homebrew
-        uses: Homebrew/actions/setup-homebrew@main
-      -
-        name: Install required tools
-        env:
-          GENERATE_DOCS: ${{ inputs.GENERATE_DOCS }}
-          HOMEBREW_NO_AUTO_UPDATE: 1
-        run: |
-          if [[ "$GENERATE_DOCS" == "true" ]]; then
-            echo "::group::Installing auto-doc"
-            brew install tj-actions/tap/auto-doc
-            echo "::endgroup::"
-          fi
       -
         name: Fetch app token
         id: app-token
@@ -121,17 +107,6 @@ jobs:
             echo "build=$HAS_BUILD_TARGET";
           } | tee -a "$GITHUB_OUTPUT"
       -
-        name: Run autodoc
-        if: inputs.GENERATE_DOCS
-        env:
-          ACTION_ROOT: ${{ steps.parse-component-info.outputs.action-root }}
-          ACTION_YML: ${{ steps.parse-action-yml.outputs.meta-file }}
-        run: |
-          auto-doc \
-            --filename "$ACTION_YML" \
-            --output "$ACTION_ROOT/README.md" \
-            --colMaxWords 20
-      -
         uses: actions/setup-node@v6
         if: ${{ steps.parse-component-info.outputs.source-language == 'node' }}
         with:
@@ -153,6 +128,46 @@ jobs:
         working-directory: ${{ steps.parse-component-info.outputs.action-root }}
         run: |
           make build
+      -
+        name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@main
+      -
+        name: Install required tools
+        env:
+          GENERATE_DOCS: ${{ inputs.GENERATE_DOCS }}
+          HOMEBREW_NO_AUTO_UPDATE: 1
+        run: |
+          if [[ "$GENERATE_DOCS" == "true" ]]; then
+            echo "::group::Installing auto-doc"
+            brew install tj-actions/tap/auto-doc
+            echo "::endgroup::"
+          fi
+      -
+        name: Run autodoc
+        if: inputs.GENERATE_DOCS
+        env:
+          ACTION_ROOT: ${{ steps.parse-component-info.outputs.action-root }}
+          ACTION_YML: ${{ steps.parse-action-yml.outputs.meta-file }}
+        run: |
+          README_FILE="${ACTION_ROOT}/README.md"
+
+          if [[ ! -f "${README_FILE}" ]]; then
+            README_TITLE=$(basename "$ACTION_ROOT")
+
+            {
+              echo "# ${README_TITLE}"
+              echo ""
+              echo "## Inputs"
+              echo ""
+              echo "## Outputs"
+              echo ""
+            } > "${README_FILE}"
+          fi
+
+          auto-doc \
+            --filename "${ACTION_YML}" \
+            --output "${README_FILE}" \
+            --colMaxWords 20
       -
         name: Check for changes
         id: detect-changes
