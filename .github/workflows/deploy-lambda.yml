@@ -6,6 +6,12 @@ on:
       COMPONENT:
         type: string
         required: true
+      TERRAFORM_VERSION:
+        type: string
+        required: true
+      TERRAGRUNT_VERSION:
+        type: string
+        required: true
     secrets:
       WRITER_APP_CLIENT_ID:
         required: false
@@ -124,6 +130,8 @@ jobs:
       - build
     uses: slingshot-pipelines/workflows/.github/workflows/deploy-terragrunt-infra.yml@deploy-terragrunt-infra/v0
     with:
+      TERRAFORM_VERSION: ${{ inputs.TERRAFORM_VERSION }}
+      TERRAGRUNT_VERSION: ${{ inputs.TERRAGRUNT_VERSION }}
       COMPONENT: ${{ inputs.COMPONENT }}
       ALL: true
       BUILD_CACHE_KEY: ${{ needs.build.outputs.build-cache-key }}
