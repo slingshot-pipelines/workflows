@@ -129,19 +129,12 @@ jobs:
         run: |
           make build
       -
-        name: Set up Homebrew
-        uses: Homebrew/actions/setup-homebrew@main
-      -
-        name: Install required tools
-        env:
-          GENERATE_DOCS: ${{ inputs.GENERATE_DOCS }}
-          HOMEBREW_NO_AUTO_UPDATE: 1
-        run: |
-          if [[ "$GENERATE_DOCS" == "true" ]]; then
-            echo "::group::Installing auto-doc"
-            brew install tj-actions/tap/auto-doc
-            echo "::endgroup::"
-          fi
+        name: Install autodoc
+        if: inputs.GENERATE_DOCS
+        uses: slingshot-pipelines/action-brew-install@v0
+        with:
+          FORMULAS: |
+            tj-actions/tap/auto-doc
       -
         name: Run autodoc
         if: inputs.GENERATE_DOCS
