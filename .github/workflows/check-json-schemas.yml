@@ -1,0 +1,82 @@
+name: check-json-schemas
+
+on:
+  workflow_call:
+    inputs:
+      COMPONENT:
+        required: true
+        type: string
+    secrets:
+      WRITER_APP_CLIENT_ID:
+        required: false
+      WRITER_APP_PRIVATE_KEY:
+        required: false
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  lint:
+    name: (${{ inputs.COMPONENT }}) lint
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Fetch app token
+        id: app-token
+        uses: slingshot-pipelines/action-optional-app-token@v0
+        with:
+          CLIENT_ID: ${{ secrets.WRITER_APP_CLIENT_ID }}
+          PRIVATE_KEY: ${{ secrets.WRITER_APP_PRIVATE_KEY }}
+      -
+        uses: actions/checkout@v6
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+      -
+        name: Lookup component info
+        id: lookup-component-info
+        uses: slingshot-pipelines/action-component-info@v1
+        with:
+          component: ${{ inputs.COMPONENT }}
+      -
+        name: Parse component info
+        id: parse-component-info
+        env:
+          COMPONENT_INFO: ${{ steps.lookup-component-info.outputs.info }}
+        run: |
+          COMPONENT_PATH=$(echo "$COMPONENT_INFO" | jq -rc '.["path"]')
+          if [[ -z "$COMPONENT_PATH" ]]; then
+            >&2 echo "Missing required field: path"
+            exit 1
+          fi
+          
+          echo "path=$COMPONENT_PATH" | tee -a "$GITHUB_OUTPUT"
+      -
+        name: Install jsonschema
+        uses: sourcemeta/jsonschema@v15.9.0
+      -
+        name: Lint and format schemas
+        working-directory: ${{ steps.parse-component-info.outputs.path }}
+        run: |
+          make lint
+          make fmt
+      -
+        name: Check for changes
+        id: detect-changes
+        uses: tj-actions/verify-changed-files@v20
+      -
+        name: Commit changes if detected
+        if: ${{ steps.detect-changes.outputs.files_changed == 'true' }}
+        uses: planetscale/ghcommit-action@v0.2.20
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token || github.token }}
+        with:
+          commit_message: "generated changes"
+          repo: ${{ github.repository }}
+          branch: ${{ github.head_ref }}
