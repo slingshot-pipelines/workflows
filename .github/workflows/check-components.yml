@@ -33,7 +33,7 @@ jobs:
           PROJECT_SCHEMA_DIR="${RUNNER_TEMP}/project-schema"
           PROJECT_SCHEMA_FILE="${PROJECT_SCHEMA_DIR}/project.schema.json"
           
-          mkdir "${PROJECT_SCEMA_DIR}"
+          mkdir "${PROJECT_SCHEMA_DIR}"
           jsonschema install "${PROJECT_SCHEMA_URL}" "${PROJECT_SCHEMA_FILE}"
 
           echo "project-schema-file=$PROJECT_SCHEMA_FILE" | tee -a "$GITHUB_OUTPUT"
