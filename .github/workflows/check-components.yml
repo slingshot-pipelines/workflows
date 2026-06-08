@@ -57,7 +57,7 @@ jobs:
         run: |
           PROJECT_FILE=".components/info.yml"
 
-          if ! [[ -f "${PROJECT_FILE}" ]]; then
+          if [[ -f "${PROJECT_FILE}" ]]; then
             jsonschema validate "${PROJECT_SCHEMA}" "${PROJECT_FILE}" --http
           else
             echo "::error::Missing ${PROJECT_FILE}"
