@@ -599,15 +599,13 @@ available during apply.
 
 <!-- AUTO-DOC-INPUT:START - Do not remove or modify this section -->
 
-|       INPUT        |  TYPE  | REQUIRED | DEFAULT |                                      DESCRIPTION                                      |
-|--------------------|--------|----------|---------|---------------------------------------------------------------------------------------|
-|  BUILD_CACHE_KEY   | string |  false   |         | If set, the action will try <br>to restore a build cache using <br>the specified key  |
-|  BUILD_CACHE_PATH  | string |  false   |         | If set, the action will try <br>to restore a build cache for <br>the specified path   |
-|     COMPONENT      | string |   true   |         |                                                                                       |
-|    ENVIRONMENT     | string |   true   |         |                                                                                       |
-|        TAG         | string |   true   |         |                                                                                       |
-| TERRAFORM_VERSION  | string |   true   |         |                                                                                       |
-| TERRAGRUNT_VERSION | string |   true   |         |                                                                                       |
+|       INPUT        |  TYPE  | REQUIRED | DEFAULT | DESCRIPTION |
+|--------------------|--------|----------|---------|-------------|
+|     COMPONENT      | string |   true   |         |             |
+|    ENVIRONMENT     | string |   true   |         |             |
+|        TAG         | string |   true   |         |             |
+| TERRAFORM_VERSION  | string |   true   |         |             |
+| TERRAGRUNT_VERSION | string |   true   |         |             |
 
 <!-- AUTO-DOC-INPUT:END -->
 
