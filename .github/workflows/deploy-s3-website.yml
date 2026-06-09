@@ -24,55 +24,13 @@ permissions:
 
 jobs:
 
-  parse-deployment-sequence:
-    name: (${{ inputs.COMPONENT }}) parse-deployment-sequence
-    runs-on: ubuntu-latest
-    outputs:
-      component-path: ${{ steps.extract-component-info.outputs.path }}
-      deployments: ${{ steps.list-deployments.outputs.deployments }}
-    steps:
-      -
-        uses: actions/checkout@v6
-      -
-        name: Get component info
-        id: component-info
-        uses: slingshot-pipelines/action-component-info@v1
-        with:
-          component: ${{ inputs.COMPONENT }}
-      -
-        name: Extract component path
-        id: extract-component-info
-        env:
-          COMPONENT_INFO: ${{ steps.component-info.outputs.info }}
-        run: |
-          COMPONENT_PATH=$(echo "$COMPONENT_INFO" | jq -rc '.path // ""')
-          if [[ -z "$COMPONENT_PATH" ]]; then
-            >&2 echo "Could not determine component path"
-            exit 1
-          fi
-
-          echo "path=$COMPONENT_PATH" | tee -a "$GITHUB_OUTPUT"
-      -
-        name: List deployments
-        id: list-deployments
-        working-directory: ${{ steps.extract-component-info.outputs.path }}
-        run: |
-          DEPLOYMENTS=$(find deployments \
-            -name 'deployment.yml' \
-            -mindepth 2 \
-            -maxdepth 2 \
-            | sed -nE 's|deployments/([^/]+)/deployment.yml|\1|p' \
-            | sort -u \
-            | jq -Rrcs 'split("\n") | map(select(. != ""))')
-          
-          echo "deployments=$DEPLOYMENTS" | tee -a "$GITHUB_OUTPUT"
-
   deploy:
-    name: (${{ inputs.COMPONENT }}) deploy
     runs-on: ubuntu-latest
     steps:
       -
         uses: actions/checkout@v6
+        with:
+          ref: refs/tags/${{ inputs.TAG }}
       -
         name: Get component info
         id: component-info
