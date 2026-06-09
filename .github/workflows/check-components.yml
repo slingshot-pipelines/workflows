@@ -58,7 +58,7 @@ jobs:
           PROJECT_FILE=".components/info.yml"
 
           if [[ -f "${PROJECT_FILE}" ]]; then
-            jsonschema validate "${PROJECT_SCHEMA}" "${PROJECT_FILE}" --http
+            jsonschema validate "${PROJECT_SCHEMA_FILE}" "${PROJECT_FILE}" --http
           else
             echo "::error::Missing ${PROJECT_FILE}"
             exit 1
@@ -74,7 +74,7 @@ jobs:
           FAILED=false
           while IFS='' read -r COMPONENT_FILE && [[ -n "$COMPONENT_FILE" ]]; do
             echo "::group::Validating $COMPONENT_FILE"
-            jsonschema validate "${COMPONENT_SCHEMA}" "${COMPONENT_FILE}" --http || FAILED=true
+            jsonschema validate "${COMPONENT_SCHEMA_FILE}" "${COMPONENT_FILE}" --http || FAILED=true
             echo "::endgroup::"
           done <<< "$COMPONENT_FILES"
 
