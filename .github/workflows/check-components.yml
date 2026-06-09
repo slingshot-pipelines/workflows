@@ -56,13 +56,15 @@ jobs:
           COMPONENT_SCHEMA_FILE: ${{ steps.download-json-schemas.outputs.component-schema-file }}
         run: |
           PROJECT_FILE=".components/info.yml"
-
+          
+          echo "::group::Validating $PROJECT_FILE"
           if [[ -f "${PROJECT_FILE}" ]]; then
             jsonschema validate "${PROJECT_SCHEMA_FILE}" "${PROJECT_FILE}" --http
           else
             echo "::error::Missing ${PROJECT_FILE}"
             exit 1
           fi
+          echo "::endgroup::"
 
           COMPONENT_FILES=$(find .components \
             -name 'info.yml' \
