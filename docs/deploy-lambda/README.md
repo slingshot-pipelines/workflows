@@ -16,6 +16,8 @@ together.
 |       INPUT        |  TYPE  | REQUIRED | DEFAULT | DESCRIPTION |
 |--------------------|--------|----------|---------|-------------|
 |     COMPONENT      | string |   true   |         |             |
+|    ENVIRONMENT     | string |   true   |         |             |
+|        TAG         | string |   true   |         |             |
 | TERRAFORM_VERSION  | string |   true   |         |             |
 | TERRAGRUNT_VERSION | string |   true   |         |             |
 

@@ -6,6 +6,12 @@ on:
       COMPONENT:
         type: string
         required: true
+      TAG:
+        type: string
+        required: true
+      ENVIRONMENT:
+        type: string
+        required: true
       TERRAFORM_VERSION:
         type: string
         required: true
@@ -32,8 +38,9 @@ jobs:
   build:
     name: (${{ inputs.COMPONENT }}) build
     outputs:
-      build-cache-key: ${{ steps.pick-build-cache-params.outputs.cache-key }}
-      build-cache-path: ${{ steps.pick-build-cache-params.outputs.cache-path }}
+      infra-path: ${{ steps.parse-component-info.outputs.infra-path }}
+      build-path: ${{ steps.parse-component-info.outputs.build-path }}
+      cache-key: ${{ steps.pick-cache-key.outputs.cache-key }}
     runs-on: ubuntu-latest
     steps:
       -
@@ -66,37 +73,37 @@ jobs:
             exit 1
           fi
 
-          SOURCE_PATH=$(echo "$COMPONENT_INFO" | jq -rc '.["src-path"]')
-          if [[ -z "$SOURCE_PATH" ]]; then
+          SOURCE_SUBPATH=$(echo "$COMPONENT_INFO" | jq -rc '.subpaths.src')
+          if [[ -z "$SOURCE_SUBPATH" ]]; then
             >&2 echo "Error determining source path"
             exit 1
           fi
 
-          echo "src-path=$COMPONENT_PATH/$SOURCE_PATH" | tee -a "$GITHUB_OUTPUT"
+          echo "src-path=$COMPONENT_PATH/$SOURCE_SUBPATH" | tee -a "$GITHUB_OUTPUT"
 
-          BUILD_PATH=$(echo "$COMPONENT_INFO" | jq -rc '.["build-path"]')
-          if [[ -z "$BUILD_PATH" ]]; then
+          BUILD_SUBPATH=$(echo "$COMPONENT_INFO" | jq -rc '.subpaths.build')
+          if [[ -z "$BUILD_SUBPATH" ]]; then
             >&2 echo "Error determining build path"
             exit 1
           fi
 
-          echo "build-path=$COMPONENT_PATH/$BUILD_PATH" | tee -a "$GITHUB_OUTPUT"
+          echo "build-path=$COMPONENT_PATH/$BUILD_SUBPATH" | tee -a "$GITHUB_OUTPUT"
 
-          INFRA_PATH=$(echo "$COMPONENT_INFO" | jq -rc '.["infra-path"]')
-          if [[ -z "$INFRA_PATH" ]]; then
+          INFRA_SUBPATH=$(echo "$COMPONENT_INFO" | jq -rc '.subpaths.infra')
+          if [[ -z "$INFRA_SUBPATH" ]]; then
             >&2 echo "Error determining infra path"
             exit 1
           fi
 
-          echo "infra-path=$COMPONENT_PATH/$INFRA_PATH" | tee -a "$GITHUB_OUTPUT"
+          echo "infra-path=$COMPONENT_PATH/$INFRA_SUBPATH" | tee -a "$GITHUB_OUTPUT"
 
-          SRC_LANG=$(echo "$COMPONENT_INFO" | jq -rc '.language')
+          SOURCE_LANGUAGE=$(echo "$COMPONENT_INFO" | jq -rc '.source-language')
           if [[ -z "$COMPONENT_INFO" ]]; then
             >&2 echo "Error determining source language"
             exit 1
           fi
 
-          echo "language=$SRC_LANG" | tee -a "$GITHUB_OUTPUT"
+          echo "source-language=$SOURCE_LANGUAGE" | tee -a "$GITHUB_OUTPUT"
       -
         uses: actions/setup-go@v6
         if: ${{ steps.component-info.outputs.language == 'go' }}
@@ -109,31 +116,30 @@ jobs:
         run: |
           make build
       -
-        name: Pick build cache parameters
-        id: pick-build-cache-params
+        name: Pick cache key
+        id: pick-cache-key
         env:
           CACHE_KEY: ${{ inputs.COMPONENT }}-${{ github.run_id }}-${{ github.run_attempt }}
-          CACHE_DIR: ${{ steps.parse-component-info.outputs.build-path }}
         run: |
           echo "cache-key=$CACHE_KEY" | tee -a "$GITHUB_OUTPUT"
-          echo "cache-path=$CACHE_DIR" | tee -a "$GITHUB_OUTPUT"
       -
         name: Cache build output
         id: cache-build-output
         uses: actions/cache/save@v5
         with:
-          key: ${{ steps.pick-build-cache-params.outputs.cache-key }}
-          path: ${{ steps.pick-build-cache-params.outputs.cache-path }}
-  
-  infra:
-    needs:
-      - build
-    uses: slingshot-pipelines/workflows/.github/workflows/deploy-terragrunt-infra.yml@deploy-terragrunt-infra/v0
+          key: ${{ steps.pick-cache-key.outputs.cache-key }}
+          path: ${{ steps.parse-component-info.outputs.build-path }}
+
+  apply:
+    needs: [build]
+    name: (${{ inputs.COMPONENT }}) terragrunt-apply
+    uses: slingshot-pipelines/workflows/.github/workflows/terragrunt-apply.yml@terragrunt-apply/v1
     with:
-      TERRAFORM_VERSION: ${{ inputs.TERRAFORM_VERSION }}
-      TERRAGRUNT_VERSION: ${{ inputs.TERRAGRUNT_VERSION }}
       COMPONENT: ${{ inputs.COMPONENT }}
-      ALL: true
-      BUILD_CACHE_KEY: ${{ needs.build.outputs.build-cache-key }}
-      BUILD_CACHE_PATH: ${{ needs.build.outputs.build-cache-path }}
-    secrets: inherit
+      STACK: ${{ inputs.ENVIRONMENT }}
+      TAG: ${{ inputs.TAG }}
+      TERRAGRUNT_VERSION: ${{ inputs.TERRAGRUNT_VERSION }}
+      TERRAFORM_VERSION: ${{ inputs.TERRAFORM_VERSION }}
+      STACKS_DIR: ${{ needs.build.outputs.infra-path }}/stacks
+      BUILD_CACHE_KEY: ${{ needs.build.outputs.cache-key }}
+      BUILD_CACHE_PATH: ${{ needs.build.outputs.build-path }}
