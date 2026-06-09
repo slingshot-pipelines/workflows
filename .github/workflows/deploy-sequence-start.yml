@@ -92,8 +92,16 @@ jobs:
       -
         uses: actions/checkout@v6
       -
+        name: Fetch app token
+        id: fetch-app-token
+        uses: slingshot-pipelines/action-optional-app-token@v0
+        with:
+          CLIENT_ID: ${{ secrets.WRITER_APP_CLIENT_ID }}
+          PRIVATE_KEY: ${{ secrets.WRITER_APP_PRIVATE_KEY }}
+      -
         uses: slingshot-pipelines/action-deployment-sequence/dispatch-next@v0
         with:
+          GITHUB_TOKEN: ${{ steps.fetch-app-token.outputs.token || github.token }}
           COMPONENT: ${{ inputs.COMPONENT }}
           NEXT_ENVIRONMENT: ${{ needs.parse-deployment-sequence.outputs.NEXT_ENVIRONMENT }}
           TAG: ${{ needs.tag-and-release.outputs.TAG }}
