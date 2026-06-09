@@ -7,6 +7,12 @@ on:
       COMPONENT:
         type: string
         required: true
+      TAG:
+        type: string
+        required: true
+      ENVIRONMENT:
+        type: string
+        required: true
 
 defaults:
   run:
@@ -18,61 +24,13 @@ permissions:
 
 jobs:
 
-  build-matrix:
-    name: (${{ inputs.COMPONENT }}) build-matrix
-    runs-on: ubuntu-latest
-    outputs:
-      component-path: ${{ steps.extract-component-info.outputs.path }}
-      deployments: ${{ steps.list-deployments.outputs.deployments }}
-    steps:
-      -
-        uses: actions/checkout@v6
-      -
-        name: Get component info
-        id: component-info
-        uses: slingshot-pipelines/action-component-info@v1
-        with:
-          component: ${{ inputs.COMPONENT }}
-      -
-        name: Extract component path
-        id: extract-component-info
-        env:
-          COMPONENT_INFO: ${{ steps.component-info.outputs.info }}
-        run: |
-          COMPONENT_PATH=$(echo "$COMPONENT_INFO" | jq -rc '.path // ""')
-          if [[ -z "$COMPONENT_PATH" ]]; then
-            >&2 echo "Could not determine component path"
-            exit 1
-          fi
-
-          echo "path=$COMPONENT_PATH" | tee -a "$GITHUB_OUTPUT"
-      -
-        name: List deployments
-        id: list-deployments
-        working-directory: ${{ steps.extract-component-info.outputs.path }}
-        run: |
-          DEPLOYMENTS=$(find deployments \
-            -name 'deployment.yml' \
-            -mindepth 2 \
-            -maxdepth 2 \
-            | sed -nE 's|deployments/([^/]+)/deployment.yml|\1|p' \
-            | sort -u \
-            | jq -Rrcs 'split("\n") | map(select(. != ""))')
-          
-          echo "deployments=$DEPLOYMENTS" | tee -a "$GITHUB_OUTPUT"
-
   deploy:
-    needs:
-      - build-matrix
-    name: (${{ inputs.COMPONENT }}) deploy (${{ matrix.DEPLOYMENT }})
     runs-on: ubuntu-latest
-    if: ${{ needs.build-matrix.outputs.deployments != '[]' }}
-    strategy:
-      matrix:
-        DEPLOYMENT: ${{ fromJSON(needs.build-matrix.outputs.deployments) }}
     steps:
       -
         uses: actions/checkout@v6
+        with:
+          ref: refs/tags/${{ inputs.TAG }}
       -
         name: Get component info
         id: component-info
@@ -97,7 +55,7 @@ jobs:
         id: deployment-info
         working-directory: ${{ steps.extract-component-info.outputs.path }}
         env:
-          DEPLOYMENT_FILE: deployments/${{ matrix.DEPLOYMENT }}/deployment.yml
+          DEPLOYMENT_FILE: deployments/${{ inputs.ENVIRONMENT }}/deployment.yml
         run: |
           ASSUME_ROLE_ARN=$(cat "$DEPLOYMENT_FILE" | yq '.["assume-role-arn"] // ""')
           if [[ -z "$ASSUME_ROLE_ARN" ]]; then
@@ -137,7 +95,7 @@ jobs:
         name: Compile website
         working-directory: ${{ steps.extract-component-info.outputs.path }}
         env:
-          DEPLOYMENT_FILE: deployments/${{ matrix.DEPLOYMENT }}/deployment.yml
+          DEPLOYMENT_FILE: deployments/${{ inputs.ENVIRONMENT }}/deployment.yml
         run: |
           echo "::group::Load environment variables from deployment file"
 

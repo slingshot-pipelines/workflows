@@ -519,9 +519,11 @@ bucket with appropriate cache headers, and triggers a CloudFront cache invalidat
 
 <!-- AUTO-DOC-INPUT:START - Do not remove or modify this section -->
 
-|   INPUT   |  TYPE  | REQUIRED | DEFAULT | DESCRIPTION |
-|-----------|--------|----------|---------|-------------|
-| COMPONENT | string |   true   |         |             |
+|    INPUT    |  TYPE  | REQUIRED | DEFAULT | DESCRIPTION |
+|-------------|--------|----------|---------|-------------|
+|  COMPONENT  | string |   true   |         |             |
+| ENVIRONMENT | string |   true   |         |             |
+|     TAG     | string |   true   |         |             |
 
 <!-- AUTO-DOC-INPUT:END -->
 
