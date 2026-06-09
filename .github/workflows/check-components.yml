@@ -25,6 +25,8 @@ jobs:
         uses: sourcemeta/jsonschema@v15.9.0
       -
         name: Validate .components/info.yml
+        env:
+          PROJECT_FILE: .components/info.yml
         run: |
           if [[ ! -f "${PROJECT_FILE}" ]]; then
             echo "::error::Missing ${PROJECT_FILE}"
