@@ -17,8 +17,9 @@ than invoked directly.
 |  BUILD_CACHE_KEY   | string |  false   |         | If set, the action will try <br>to restore a build cache using <br>the specified key  |
 |  BUILD_CACHE_PATH  | string |  false   |         | If set, the action will try <br>to restore a build cache for <br>the specified path   |
 |     COMPONENT      | string |   true   |         |                                                                                       |
-|       STACKS       | string |  false   | `"[]"`  |                             JSON array of stacks to plan                              |
+|       STACK        | string |   true   |         |                                  The stack to deploy                                  |
 |     STACKS_DIR     | string |   true   |         |                                                                                       |
+|        TAG         | string |   true   |         |                                                                                       |
 | TERRAFORM_VERSION  | string |  false   |         |                                                                                       |
 | TERRAGRUNT_VERSION | string |  false   |         |                                                                                       |
 

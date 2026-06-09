@@ -13,14 +13,16 @@ on:
       TERRAFORM_VERSION:
         required: false
         type: string
+      TAG:
+        required: true
+        type: string
       STACKS_DIR:
         required: true
         type: string
-      STACKS:
-        required: false
+      STACK:
+        description: The stack to deploy
+        required: true
         type: string
-        description: 'JSON array of stacks to plan'
-        default: '[]'
       BUILD_CACHE_KEY:
         required: false
         type: string
@@ -43,14 +45,12 @@ jobs:
 
   terragrunt-apply:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        STACK: ${{ fromJSON(inputs.STACKS) }}
-    name: (${{ inputs.COMPONENT }}) terragrunt-apply (${{ matrix.STACK }})
+    name: (${{ inputs.COMPONENT }}) terragrunt-apply (${{ inputs.STACK }})
     steps:
       -
         uses: actions/checkout@v6
+        with:
+          ref: refs/tags/${{ inputs.TAG }}
       -
         name: Install Terraform & Terragrunt
         id: tg-install
@@ -82,7 +82,7 @@ jobs:
         id: stack-info
         uses: slingshot-pipelines/action-terragrunt/stack-info@v0
         with:
-          INFO_FILE: ${{ inputs.STACKS_DIR }}/${{ matrix.STACK }}/stack.yml
+          INFO_FILE: ${{ inputs.STACKS_DIR }}/${{ inputs.STACK }}/stack.yml
       -
         name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -122,5 +122,5 @@ jobs:
           PIPELINE_COMPONENT: ${{ inputs.COMPONENT }}
           TG_LOG_CUSTOM_FORMAT: "%level(case=upper,width=6,color=preset,suffix=' ')%prefix(path=short-relative,color=gradient,prefix='[',suffix='] ')%msg(path=relative)"
         with:
-          working-directory: ${{ inputs.STACKS_DIR }}/${{ matrix.STACK }}
+          working-directory: ${{ inputs.STACKS_DIR }}/${{ inputs.STACK }}
           command: stack run apply
