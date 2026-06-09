@@ -7,6 +7,12 @@ on:
       COMPONENT:
         type: string
         required: true
+      TAG:
+        type: string
+        required: true
+      ENVIRONMENT:
+        type: string
+        required: true
 
 defaults:
   run:
@@ -18,8 +24,8 @@ permissions:
 
 jobs:
 
-  build-matrix:
-    name: (${{ inputs.COMPONENT }}) build-matrix
+  parse-deployment-sequence:
+    name: (${{ inputs.COMPONENT }}) parse-deployment-sequence
     runs-on: ubuntu-latest
     outputs:
       component-path: ${{ steps.extract-component-info.outputs.path }}
@@ -62,14 +68,8 @@ jobs:
           echo "deployments=$DEPLOYMENTS" | tee -a "$GITHUB_OUTPUT"
 
   deploy:
-    needs:
-      - build-matrix
-    name: (${{ inputs.COMPONENT }}) deploy (${{ matrix.DEPLOYMENT }})
+    name: (${{ inputs.COMPONENT }}) deploy
     runs-on: ubuntu-latest
-    if: ${{ needs.build-matrix.outputs.deployments != '[]' }}
-    strategy:
-      matrix:
-        DEPLOYMENT: ${{ fromJSON(needs.build-matrix.outputs.deployments) }}
     steps:
       -
         uses: actions/checkout@v6
@@ -97,7 +97,7 @@ jobs:
         id: deployment-info
         working-directory: ${{ steps.extract-component-info.outputs.path }}
         env:
-          DEPLOYMENT_FILE: deployments/${{ matrix.DEPLOYMENT }}/deployment.yml
+          DEPLOYMENT_FILE: deployments/${{ inputs.ENVIRONMENT }}/deployment.yml
         run: |
           ASSUME_ROLE_ARN=$(cat "$DEPLOYMENT_FILE" | yq '.["assume-role-arn"] // ""')
           if [[ -z "$ASSUME_ROLE_ARN" ]]; then
@@ -137,7 +137,7 @@ jobs:
         name: Compile website
         working-directory: ${{ steps.extract-component-info.outputs.path }}
         env:
-          DEPLOYMENT_FILE: deployments/${{ matrix.DEPLOYMENT }}/deployment.yml
+          DEPLOYMENT_FILE: deployments/${{ inputs.ENVIRONMENT }}/deployment.yml
         run: |
           echo "::group::Load environment variables from deployment file"
 
