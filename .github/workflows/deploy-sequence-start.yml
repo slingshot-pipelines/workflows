@@ -1,0 +1,94 @@
+name: deploy-sequence-start
+
+on:
+
+  workflow_call:
+    inputs:
+      COMPONENT:
+        type: string
+        required: true
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+
+  parse-deployment-sequence:
+    name: (${{ inputs.COMPONENT }}) parse-deployment-sequence
+    runs-on: ubuntu-latest
+    outputs:
+      NEXT_ENVIRONMENT: ${{ steps.deployment-sequence.outputs.NEXT_ENVIRONMENT }}
+      DONE: ${{ steps.deployment-sequence.outputs.DONE }}
+    steps:
+      -
+        uses: actions/checkout@v6
+      -
+        name: Parse deployment sequence
+        id: deployment-sequence
+        uses: slingshot-pipelines/action-deployment-sequence/parse-sequence@v0
+        with:
+          COMPONENT: ${{ inputs.COMPONENT }}
+
+  tag-and-release:
+    name: (${{ inputs.COMPONENT }}) tag-and-release
+    needs: parse-deployment-sequence
+    runs-on: ubuntu-latest
+    outputs:
+      TAG: ${{ steps.next-version.outputs.next-patch-tag }}
+    steps:
+      -
+        name: Fetch app token
+        id: fetch-app-token
+        uses: slingshot-pipelines/action-optional-app-token@v0
+        with:
+          CLIENT_ID: ${{ secrets.WRITER_APP_CLIENT_ID }}
+          PRIVATE_KEY: ${{ secrets.WRITER_APP_PRIVATE_KEY }}
+      -
+        uses: actions/checkout@v6
+        with:
+          token: ${{ steps.fetch-app-token.outputs.token || github.token }}
+          fetch-depth: 0
+      -
+        name: Pick tag prefix
+        id: pick-tag-prefix
+        env:
+          TAG_PREFIX: ${{ inputs.COMPONENT }}/v
+        run: |
+          echo "tag-prefix=$TAG_PREFIX" | tee -a "$GITHUB_OUTPUT"
+      -
+        name: Pick next version
+        uses: lucaspopp0/semantic-version@v0
+        id: next-version
+        with:
+          tag-prefix: ${{ steps.pick-tag-prefix.outputs.tag-prefix }}
+      -
+        name: Tag and push
+        uses: lucaspopp0/tag-and-push@v0
+        env:
+          GITHUB_TOKEN: ${{ steps.fetch-app-token.outputs.token || github.token }}
+        with:
+          tag: ${{ steps.next-version.outputs.next-patch-tag }}
+          release: true
+          release-type: ${{ needs.parse-deployment-sequence.outputs.DONE == 'true' && 'release' || 'prerelease' }}
+
+  dispatch-next:
+    needs:
+      - parse-deployment-sequence
+      - tag-and-release
+    name: (${{ inputs.COMPONENT }}) dispatch-next
+    runs-on: ubuntu-latest
+    if: ${{ needs.parse-deployment-sequence.outputs.DONE != 'true' }}
+    steps:
+      -
+        uses: actions/checkout@v6
+      -
+        uses: slingshot-pipelines/action-deployment-sequence/dispatch-next@v0
+        with:
+          COMPONENT: ${{ inputs.COMPONENT }}
+          NEXT_ENVIRONMENT: ${{ needs.parse-deployment-sequence.outputs.NEXT_ENVIRONMENT }}
+          TAG: ${{ needs.tag-and-release.outputs.TAG }}
