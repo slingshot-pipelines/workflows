@@ -54,13 +54,13 @@ jobs:
         env:
           COMPONENT_INFO: ${{ steps.lookup-component-info.outputs.info }}
         run: |
-          ACTION_ROOT=$(echo "$COMPONENT_INFO" | jq -rc '.["action-root"]')
-          if [[ -z "$ACTION_ROOT" ]]; then
-            >&2 echo "Error parsing action root"
+          COMPONENT_PATH=$(echo "$COMPONENT_INFO" | jq -rc '.["path"]')
+          if [[ -z "$COMPONENT_PATH" ]]; then
+            >&2 echo "Error parsing component path"
             exit 1
           fi
 
-          echo "action-root=$ACTION_ROOT" | tee -a "$GITHUB_OUTPUT"
+          echo "path=$COMPONENT_PATH" | tee -a "$GITHUB_OUTPUT"
 
           ACTION_SOURCE_LANGUAGE=$(echo "$COMPONENT_INFO" | jq -rc '.["source-language"]')
           if [[ -z "$ACTION_SOURCE_LANGUAGE" ]]; then
@@ -72,9 +72,9 @@ jobs:
         name: Parse action.yml
         id: parse-action-yml
         env:
-          ACTION_ROOT: ${{ steps.parse-component-info.outputs.action-root }}
+          COMPONENT_PATH: ${{ steps.parse-component-info.outputs.path }}
         run: |
-          ACTION_META_FILE=$(find "${ACTION_ROOT}" -name 'action.yml' -or -name 'action.yaml' | head -n 1)
+          ACTION_META_FILE=$(find "${COMPONENT_PATH}" -name 'action.yml' -or -name 'action.yaml' | head -n 1)
           if [[ -z "${ACTION_META_FILE}" ]]; then
             >&2 echo "No action.yml or action.yaml found"
             exit 1
@@ -84,7 +84,7 @@ jobs:
       -
         name: Check Makefile targets
         id: check-makefile-targets
-        working-directory: ${{ steps.parse-component-info.outputs.action-root }}
+        working-directory: ${{ steps.parse-component-info.outputs.path }}
         run: |
           HAS_LINT_TARGET=false
           if make -q lint 2>/dev/null; (( $? < 2 )); then
@@ -110,22 +110,22 @@ jobs:
         uses: actions/setup-node@v6
         if: ${{ steps.parse-component-info.outputs.source-language == 'node' }}
         with:
-          node-version-file: ${{ steps.parse-component-info.outputs.action-root }}/package.json
-          cache-dependency-path: ${{ steps.parse-component-info.outputs.action-root }}/package-lock.json
+          node-version-file: ${{ steps.parse-component-info.outputs.path }}/package.json
+          cache-dependency-path: ${{ steps.parse-component-info.outputs.path }}/package-lock.json
           cache: npm
       -
         if: ${{ steps.check-makefile-targets.outputs.lint == 'true' }}
-        working-directory: ${{ steps.parse-component-info.outputs.action-root }}
+        working-directory: ${{ steps.parse-component-info.outputs.path }}
         run: |
           make lint
       -
         if: ${{ steps.check-makefile-targets.outputs.test == 'true' }}
-        working-directory: ${{ steps.parse-component-info.outputs.action-root }}
+        working-directory: ${{ steps.parse-component-info.outputs.path }}
         run: |
           make unit-test
       -
         if: ${{ steps.check-makefile-targets.outputs.build == 'true' }}
-        working-directory: ${{ steps.parse-component-info.outputs.action-root }}
+        working-directory: ${{ steps.parse-component-info.outputs.path }}
         run: |
           make build
       -
@@ -139,7 +139,7 @@ jobs:
         name: Run autodoc
         if: inputs.GENERATE_DOCS
         env:
-          ACTION_ROOT: ${{ steps.parse-component-info.outputs.action-root }}
+          ACTION_ROOT: ${{ steps.parse-component-info.outputs.path }}
           ACTION_YML: ${{ steps.parse-action-yml.outputs.meta-file }}
         run: |
           README_FILE="${ACTION_ROOT}/README.md"
@@ -172,6 +172,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token || github.token }}
         with:
-          commit_message: "generated changes"
+          commit_message: "generated changes (${{ inputs.COMPONENT }})"
           repo: ${{ github.repository }}
           branch: ${{ github.head_ref }}

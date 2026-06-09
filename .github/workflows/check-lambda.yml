@@ -66,29 +66,29 @@ jobs:
             exit 1
           fi
 
-          SOURCE_PATH=$(echo "$COMPONENT_INFO" | jq -rc '.["src-path"]')
-          if [[ -z "$SOURCE_PATH" ]]; then
+          SOURCE_SUBPATH=$(echo "$COMPONENT_INFO" | jq -rc '.subpaths.src')
+          if [[ -z "$SOURCE_SUBPATH" ]]; then
             >&2 echo "Error determining source path"
             exit 1
           fi
 
-          echo "src-path=$COMPONENT_PATH/$SOURCE_PATH" | tee -a "$GITHUB_OUTPUT"
+          echo "src-path=$COMPONENT_PATH/$SOURCE_SUBPATH" | tee -a "$GITHUB_OUTPUT"
 
-          BUILD_PATH=$(echo "$COMPONENT_INFO" | jq -rc '.["build-path"]')
-          if [[ -z "$BUILD_PATH" ]]; then
+          BUILD_SUBPATH=$(echo "$COMPONENT_INFO" | jq -rc '.subpaths.build')
+          if [[ -z "$BUILD_SUBPATH" ]]; then
             >&2 echo "Error determining build path"
             exit 1
           fi
 
-          echo "build-path=$COMPONENT_PATH/$BUILD_PATH" | tee -a "$GITHUB_OUTPUT"
+          echo "build-path=$COMPONENT_PATH/$BUILD_SUBPATH" | tee -a "$GITHUB_OUTPUT"
 
-          INFRA_PATH=$(echo "$COMPONENT_INFO" | jq -rc '.["infra-path"]')
-          if [[ -z "$INFRA_PATH" ]]; then
+          INFRA_SUBPATH=$(echo "$COMPONENT_INFO" | jq -rc '.subpaths.infra')
+          if [[ -z "$INFRA_SUBPATH" ]]; then
             >&2 echo "Error determining infra path"
             exit 1
           fi
 
-          echo "infra-path=$COMPONENT_PATH/$INFRA_PATH" | tee -a "$GITHUB_OUTPUT"
+          echo "infra-path=$COMPONENT_PATH/$INFRA_SUBPATH" | tee -a "$GITHUB_OUTPUT"
 
           SRC_LANG=$(echo "$COMPONENT_INFO" | jq -rc '.language')
           if [[ -z "$COMPONENT_INFO" ]]; then

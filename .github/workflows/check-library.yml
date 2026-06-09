@@ -39,20 +39,17 @@ jobs:
         with:
           token: ${{ steps.fetch-app-token.outputs.token || github.token }}
       -
-        name: Components info
-        id: components-info
-        uses: slingshot-pipelines/action-components-info@v1
+        name: Lookup component info
+        id: lookup-component-info
+        uses: slingshot-pipelines/action-component-info@v1
+        with:
+          component: ${{ inputs.COMPONENT }}
       -
         name: Extract info for this component as outputs
-        id: component-info
+        id: extract-component-info
         env:
-          COMPONENT: ${{ inputs.COMPONENT }}
-          COMPONENTS_INFO: ${{ steps.components-info.outputs.info }}
+          COMPONENT_INFO: ${{ steps.lookup-component-info.outputs.info }}
         run: |
-          COMPONENT_INFO=$(echo "$COMPONENTS_INFO" \
-            | jq -rc --arg component "$COMPONENT" \
-              '.[$component]')
-          
           COMPONENT_PATH=$(echo "$COMPONENT_INFO" | jq -rc '.path')
           if [[ -z "$COMPONENT_PATH" ]]; then
             >&2 echo "Error determining component directory"
@@ -61,22 +58,22 @@ jobs:
 
           echo "path=$COMPONENT_PATH" | tee -a "$GITHUB_OUTPUT"
 
-          SRC_LANG=$(echo "$COMPONENT_INFO" | jq -rc '.language')
-          if [[ -z "$COMPONENT_INFO" ]]; then
+          COMPONENT_SOURCE_LANGUAGE=$(echo "$COMPONENT_INFO" | jq -rc '.source-language')
+          if [[ -z "$COMPONENT_SOURCE_LANGUAGE" ]]; then
             >&2 echo "Error determining source language"
             exit 1
           fi
 
-          echo "language=$SRC_LANG" | tee -a "$GITHUB_OUTPUT"
+          echo "source-language=$COMPONENT_SOURCE_LANGUAGE" | tee -a "$GITHUB_OUTPUT"
       -
         uses: actions/setup-go@v6
-        if: ${{ steps.component-info.outputs.language == 'go' }}
+        if: ${{ steps.extract-component-info.outputs.source-language == 'go' }}
         with:
-          go-version-file: ${{ steps.component-info.outputs.path }}/go.mod
-          cache-dependency-path: ${{ steps.component-info.outputs.path }}/go.mod
+          go-version-file: ${{ steps.extract-component-info.outputs.path }}/go.mod
+          cache-dependency-path: ${{ steps.extract-component-info.outputs.path }}/go.mod
       -
         name: Lint source
-        working-directory: ${{ steps.component-info.outputs.path }}
+        working-directory: ${{ steps.extract-component-info.outputs.path }}
         run: |
           make lint
       -
@@ -111,6 +108,6 @@ jobs:
           exit 1
       -
         name: Unit tests
-        working-directory: ${{ steps.component-info.outputs.path }}
+        working-directory: ${{ steps.extract-component-info.outputs.path }}
         run: |
           make unit-test
