@@ -21,23 +21,52 @@ jobs:
       -
         uses: actions/checkout@v6
       -
-        name: Validate project info.yml
-        if: ${{ !cancelled() }}
+        name: Install jsonschema
+        uses: sourcemeta/jsonschema@v15.9.0
+      -
+        name: Download schemas
+        id: download-json-schemas
         run: |
-          if ! [[ -f ".components/info.yml" ]]; then
-            echo "::error::Missing .components/info.yml"
+          echo "Installing project.schema.json..."
+            
+          PROJECT_SCHEMA_URL="https://raw.githubusercontent.com/slingshot-pipelines/jsonschemas/main/schemas/project/v1/project.schema.json"
+          PROJECT_SCHEMA_DIR="${RUNNER_TEMP}/project-schema"
+          PROJECT_SCHEMA_FILE="${PROJECT_SCHEMA_DIR}/project.schema.json"
+          
+          mkdir "${PROJECT_SCHEMA_DIR}"
+          jsonschema install "${PROJECT_SCHEMA_URL}" "${PROJECT_SCHEMA_FILE}"
+
+          echo "project-schema-file=$PROJECT_SCHEMA_FILE" | tee -a "$GITHUB_OUTPUT"
+
+          echo ""
+          echo "Installing component.schema.json..."
+          
+          COMPONENT_SCHEMA_URL="https://raw.githubusercontent.com/slingshot-pipelines/jsonschemas/main/schemas/component/v1/component.schema.json"
+          COMPONENT_SCHEMA_DIR="${RUNNER_TEMP}/component-schema"
+          COMPONENT_SCHEMA_FILE="${COMPONENT_SCHEMA_DIR}/component.schema.json"
+          
+          mkdir "${COMPONENT_SCHEMA_DIR}"
+          jsonschema install "${COMPONENT_SCHEMA_URL}" "${COMPONENT_SCHEMA_FILE}"
+          
+          echo "component-schema-file=$COMPONENT_SCHEMA_FILE" | tee -a "$GITHUB_OUTPUT"
+      -
+        name: Validate components
+        env:
+          PROJECT_SCHEMA_FILE: ${{ steps.download-json-schemas.outputs.project-schema-file }}
+          COMPONENT_SCHEMA_FILE: ${{ steps.download-json-schemas.outputs.component-schema-file }}
+        run: |
+          PROJECT_FILE=".components/info.yml"
+          
+          echo "::group::Validating $PROJECT_FILE"
+          if [[ -f "${PROJECT_FILE}" ]]; then
+            jsonschema validate "${PROJECT_SCHEMA_FILE}" "${PROJECT_FILE}" --http
+          else
+            echo "::error::Missing ${PROJECT_FILE}"
             exit 1
           fi
+          echo "::endgroup::"
 
-          PROJECT_NAME=$(cat ".components/info.yml" | yq '.project')
-          if [[ -z "$PROJECT_NAME" ]]; then
-            echo "::error file=.components/info.yml::Missing required key 'project'"
-          fi
-      -
-        name: Validate component info.yml files
-        if: ${{ !cancelled() }}
-        run: |          
-          INFO_FILES=$(find .components \
+          COMPONENT_FILES=$(find .components \
             -name 'info.yml' \
             -type f \
             -mindepth 2 \
@@ -45,30 +74,11 @@ jobs:
             | sort -u)
 
           FAILED=false
-          while IFS='' read -r INFO_FILE && [[ -n "$INFO_FILE" ]]; do
-            echo "::group::Validating $INFO_FILE"
-            COMPONENT_JSON=$(cat "$INFO_FILE" | yq -o=json -I0 '.')
-
-            COMPONENT_NAME=$(echo "$COMPONENT_JSON" | jq -rc '.component')
-            if [[ -z "$COMPONENT_NAME" ]]; then
-              echo "::error file=$INFO_FILE::Missing required key 'component'"
-              FAILED=true
-            fi
-
-            COMPONENT_NAME=$(echo "$COMPONENT_JSON" | jq -rc '.type')
-            if [[ -z $(echo "$COMPONENT_JSON" | jq -rc '.type') ]]; then
-              echo "::error file=$INFO_FILE::Missing required key 'type'"
-              FAILED=true
-            fi
-
-            COMPONENT_PATH=$(echo "$COMPONENT_JSON" | jq -rc '.path')
-            if [[ -z "$COMPONENT_PATH" ]]; then
-              echo "::error file=$INFO_FILE::Missing required key 'path'"
-              FAILED=true
-            fi
-
+          while IFS='' read -r COMPONENT_FILE && [[ -n "$COMPONENT_FILE" ]]; do
+            echo "::group::Validating $COMPONENT_FILE"
+            jsonschema validate "${COMPONENT_SCHEMA_FILE}" "${COMPONENT_FILE}" --http || FAILED=true
             echo "::endgroup::"
-          done <<< "$INFO_FILES"
+          done <<< "$COMPONENT_FILES"
 
           if [[ "$FAILED" == "true" ]]; then
             exit 1
