@@ -155,7 +155,7 @@ jobs:
           make build
       -
         name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v5
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ steps.deployment-info.outputs.assume-role-arn }}
           aws-region: us-east-1
