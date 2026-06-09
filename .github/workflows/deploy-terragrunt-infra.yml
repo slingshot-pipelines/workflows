@@ -18,14 +18,6 @@ on:
       TERRAGRUNT_VERSION:
         type: string
         required: true
-      BUILD_CACHE_KEY:
-        required: false
-        type: string
-        description: If set, the action will try to restore a build cache using the specified key
-      BUILD_CACHE_PATH:
-        required: false
-        type: string
-        description: If set, the action will try to restore a build cache for the specified path
 
 permissions:
   contents: read
@@ -42,8 +34,7 @@ jobs:
     name: (${{ inputs.COMPONENT }}) parse-component-info
     runs-on: ubuntu-latest
     outputs:
-      UNITS_DIR: ${{ steps.pick-infra-dirs.outputs.units-dir }}
-      STACKS_DIR: ${{ steps.pick-infra-dirs.outputs.stacks-dir }}
+      STACKS_DIR: ${{ steps.parse-stacks-dir.outputs.stacks-dir }}
     steps:
       -
         uses: actions/checkout@v6
@@ -54,36 +45,18 @@ jobs:
         with:
           component: ${{ inputs.COMPONENT }}
       -
-        name: Pick infra directories
-        id: pick-infra-dirs
+        name: Parse stacks directory
+        id: parse-stacks-dir
         env:
           COMPONENT_INFO: ${{ steps.fetch-component-info.outputs.info }}
         run: |
-          COMPONENT_TYPE=$(echo "$COMPONENT_INFO" | jq -rc '.type')
-          if [[ -z "$COMPONENT_TYPE" ]]; then
-            >&2 echo "Error determining component type"
-            exit 1
-          fi
-
           COMPONENT_PATH=$(echo "$COMPONENT_INFO" | jq -rc '.path')
           if [[ -z "$COMPONENT_PATH" ]]; then
             >&2 echo "Error determining component path"
             exit 1
           fi
 
-          if [[ "$COMPONENT_TYPE" == "lambda" ]]; then
-            INFRA_SUBPATH=$(echo "$COMPONENT_INFO" | jq -rc '.subpaths.infra')
-            if [[ -z "$INFRA_SUBPATH" ]]; then
-              >&2 echo "Component info.yml missing required field .subpaths.infra"
-              exit 1
-            fi
-
-            echo "units-dir=$COMPONENT_PATH/$INFRA_SUBPATH/units" | tee -a "$GITHUB_OUTPUT"
-            echo "stacks-dir=$COMPONENT_PATH/$INFRA_SUBPATH/stacks" | tee -a "$GITHUB_OUTPUT"
-          else
-            echo "units-dir=$COMPONENT_PATH/units" | tee -a "$GITHUB_OUTPUT"
-            echo "stacks-dir=$COMPONENT_PATH/stacks" | tee -a "$GITHUB_OUTPUT"
-          fi
+          echo "stacks-dir=$COMPONENT_PATH/stacks" | tee -a "$GITHUB_OUTPUT"
 
   apply:
     needs: [parse-component-info]
@@ -96,5 +69,3 @@ jobs:
       TERRAGRUNT_VERSION: ${{ inputs.TERRAGRUNT_VERSION }}
       TERRAFORM_VERSION: ${{ inputs.TERRAFORM_VERSION }}
       STACKS_DIR: ${{ needs.parse-component-info.outputs.STACKS_DIR }}
-      BUILD_CACHE_KEY: ${{ inputs.BUILD_CACHE_KEY }}
-      BUILD_CACHE_PATH: ${{ inputs.BUILD_CACHE_PATH }}
