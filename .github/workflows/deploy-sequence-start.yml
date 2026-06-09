@@ -7,6 +7,11 @@ on:
       COMPONENT:
         type: string
         required: true
+    secrets:
+      WRITER_APP_CLIENT_ID:
+        required: false
+      WRITER_APP_PRIVATE_KEY:
+        required: false
 
 defaults:
   run:

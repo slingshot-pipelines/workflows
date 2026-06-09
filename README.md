@@ -568,7 +568,12 @@ Workflow definition: [deploy-sequence-start.yml](https://github.com/slingshot-pi
 ## Secrets
 
 <!-- AUTO-DOC-SECRETS:START - Do not remove or modify this section -->
-No secrets.
+
+|         SECRET         | REQUIRED | DESCRIPTION |
+|------------------------|----------|-------------|
+|  WRITER_APP_CLIENT_ID  |  false   |             |
+| WRITER_APP_PRIVATE_KEY |  false   |             |
+
 <!-- AUTO-DOC-SECRETS:END -->
 
 
