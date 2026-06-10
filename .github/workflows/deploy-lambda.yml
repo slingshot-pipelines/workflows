@@ -97,8 +97,8 @@ jobs:
 
           echo "infra-path=$COMPONENT_PATH/$INFRA_SUBPATH" | tee -a "$GITHUB_OUTPUT"
 
-          SOURCE_LANGUAGE=$(echo "$COMPONENT_INFO" | jq -rc '.source-language')
-          if [[ -z "$COMPONENT_INFO" ]]; then
+          SOURCE_LANGUAGE=$(echo "$COMPONENT_INFO" | jq -rc '.["source-language"]')
+          if [[ -z "$SOURCE_LANGUAGE" ]]; then
             >&2 echo "Error determining source language"
             exit 1
           fi
