@@ -58,7 +58,7 @@ jobs:
 
           echo "path=$COMPONENT_PATH" | tee -a "$GITHUB_OUTPUT"
 
-          COMPONENT_SOURCE_LANGUAGE=$(echo "$COMPONENT_INFO" | jq -rc '.source-language')
+          COMPONENT_SOURCE_LANGUAGE=$(echo "$COMPONENT_INFO" | jq -rc '.["source-language"]')
           if [[ -z "$COMPONENT_SOURCE_LANGUAGE" ]]; then
             >&2 echo "Error determining source language"
             exit 1
