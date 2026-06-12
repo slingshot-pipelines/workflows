@@ -3,7 +3,7 @@ name: check-json-schemas
 on:
   workflow_call:
     inputs:
-      COMPONENT:
+      COMPONENTS:
         required: true
         type: string
     secrets:
@@ -24,7 +24,10 @@ defaults:
 jobs:
 
   lint:
-    name: (${{ inputs.COMPONENT }}) lint
+    strategy:
+      matrix:
+        COMPONENT: ${{ fromJSON(inputs.COMPONENTS) }}
+    name: (${{ matrix.COMPONENT }}) lint
     runs-on: ubuntu-latest
     steps:
       -
@@ -43,7 +46,7 @@ jobs:
         id: lookup-component-info
         uses: slingshot-pipelines/action-component-info@v1
         with:
-          component: ${{ inputs.COMPONENT }}
+          component: ${{ matrix.COMPONENT }}
       -
         name: Parse component info
         id: parse-component-info
@@ -77,6 +80,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token || github.token }}
         with:
-          commit_message: "generated changes"
+          commit_message: "generated changes (${{ matrix.COMPONENT }})"
           repo: ${{ github.repository }}
           branch: ${{ github.head_ref }}
