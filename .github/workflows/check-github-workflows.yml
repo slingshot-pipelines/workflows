@@ -2,10 +2,6 @@ name: check-github-workflows
 
 on:
   workflow_call:
-    inputs:
-      COMPONENT:
-        required: true
-        type: string
     secrets:
       WRITER_APP_CLIENT_ID:
         required: false
@@ -24,7 +20,7 @@ defaults:
 jobs:
 
   lint:
-    name: (${{ inputs.COMPONENT }}) lint
+    name: lint
     runs-on: ubuntu-latest
     steps:
       -
