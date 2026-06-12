@@ -1,0 +1,41 @@
+name: check-terragrunt-infras
+
+on:
+  workflow_call:
+    inputs:
+      COMPONENTS:
+        type: string
+        required: true
+      TERRAFORM_VERSION:
+        type: string
+        required: true
+      TERRAGRUNT_VERSION:
+        type: string
+        required: true
+    secrets:
+      WRITER_APP_CLIENT_ID:
+        required: false
+      WRITER_APP_PRIVATE_KEY:
+        required: false
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  matrix:
+    strategy:
+      matrix:
+        COMPONENT: ${{ fromJSON(inputs.COMPONENTS) }}
+    uses: slingshot-pipelines/workflows/.github/workflows/check-terragrunt-infra.yml@check-terragrunt-infra/v0
+    with:
+      COMPONENT: ${{ matrix.COMPONENT }}
+      TERRAFORM_VERSION: ${{ inputs.TERRAFORM_VERSION}}
+      TERRAGRUNT_VERSION: ${{ inputs.TERRAGRUNT_VERSION }}
+    secrets: inherit
