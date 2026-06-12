@@ -144,11 +144,7 @@ Workflow definition: [check-github-workflows.yml](https://github.com/slingshot-p
 ## Inputs
 
 <!-- AUTO-DOC-INPUT:START - Do not remove or modify this section -->
-
-|   INPUT   |  TYPE  | REQUIRED | DEFAULT | DESCRIPTION |
-|-----------|--------|----------|---------|-------------|
-| COMPONENT | string |   true   |         |             |
-
+No inputs.
 <!-- AUTO-DOC-INPUT:END -->
 
 
