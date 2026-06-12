@@ -1,6 +1,6 @@
 # {WORKFLOW_TITLE}
 
-Workflow definition: [check-json-schemas.yml](https://github.com/slingshot-pipelines/workflows/blob/main/.github/workflows/check-json-schemas.yml)
+Workflow definition: [release-libraries.yml](https://github.com/slingshot-pipelines/workflows/blob/main/.github/workflows/release-libraries.yml)
 
 ## Inputs
 
