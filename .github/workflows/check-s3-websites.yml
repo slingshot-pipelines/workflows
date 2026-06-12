@@ -23,7 +23,7 @@ permissions:
 
 jobs:
 
-  matrix:
+  check-s3-website:
     strategy:
       matrix:
         COMPONENT: ${{ fromJSON(inputs.COMPONENTS) }}

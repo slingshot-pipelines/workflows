@@ -23,7 +23,7 @@ defaults:
 
 jobs:
 
-  matrix:
+  check-library:
     strategy:
       matrix:
         COMPONENT: ${{ fromJSON(inputs.COMPONENTS) }}

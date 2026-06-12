@@ -29,7 +29,7 @@ defaults:
 
 jobs:
 
-  matrix:
+  check-terragrunt-infra:
     strategy:
       matrix:
         COMPONENT: ${{ fromJSON(inputs.COMPONENTS) }}

@@ -29,7 +29,7 @@ defaults:
 
 jobs:
 
-  matrix:
+  check-lambda:
     strategy:
       matrix:
         COMPONENT: ${{ fromJSON(inputs.COMPONENTS) }}

@@ -28,7 +28,7 @@ defaults:
 
 jobs:
 
-  matrix:
+  check-github-action:
     strategy:
       matrix:
         COMPONENT: ${{ fromJSON(inputs.COMPONENTS) }}
