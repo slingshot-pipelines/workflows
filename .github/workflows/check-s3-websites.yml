@@ -1,0 +1,33 @@
+name: check-s3-website
+
+on:
+
+  workflow_call:
+    inputs:
+      COMPONENTS:
+        type: string
+        required: true
+    secrets:
+      WRITER_APP_CLIENT_ID:
+        required: false
+      WRITER_APP_PRIVATE_KEY:
+        required: false
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+
+  matrix:
+    strategy:
+      matrix:
+        COMPONENT: ${{ fromJSON(inputs.COMPONENTS) }}
+    uses: slingshot-pipelines/workflows/.github/workflows/check-s3-website.yml@check-s3-website/v0
+    with:
+      COMPONENT: ${{ matrix.COMPONENT }}
+    secrets: inherit
