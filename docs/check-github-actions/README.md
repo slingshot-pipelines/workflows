@@ -14,9 +14,10 @@ CI configuration mistakes.
 
 <!-- AUTO-DOC-INPUT:START - Do not remove or modify this section -->
 
-|   INPUT   |  TYPE  | REQUIRED | DEFAULT | DESCRIPTION |
-|-----------|--------|----------|---------|-------------|
-| COMPONENT | string |   true   |         |             |
+|     INPUT     |  TYPE   | REQUIRED | DEFAULT |                 DESCRIPTION                  |
+|---------------|---------|----------|---------|----------------------------------------------|
+|  COMPONENTS   | string  |   true   |         | A JSON array of GitHub actions <br>to check  |
+| GENERATE_DOCS | boolean |  false   | `true`  |                                              |
 
 <!-- AUTO-DOC-INPUT:END -->
 
