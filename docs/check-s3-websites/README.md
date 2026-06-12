@@ -1,6 +1,6 @@
 # {WORKFLOW_TITLE}
 
-Workflow definition: [check-json-schemas.yml](https://github.com/slingshot-pipelines/workflows/blob/main/.github/workflows/check-json-schemas.yml)
+Workflow definition: [check-s3-websites.yml](https://github.com/slingshot-pipelines/workflows/blob/main/.github/workflows/check-s3-websites.yml)
 
 ## Inputs
 

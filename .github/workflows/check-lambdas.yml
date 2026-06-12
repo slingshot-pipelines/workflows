@@ -1,16 +1,17 @@
-name: check-github-actions
+name: check-lambdas
 
 on:
   workflow_call:
     inputs:
       COMPONENTS:
-        required: true
         type: string
-        description: A JSON array of GitHub actions to check
-      GENERATE_DOCS:
-        type: boolean
-        required: false
-        default: true
+        required: true
+      TERRAFORM_VERSION:
+        type: string
+        required: true
+      TERRAGRUNT_VERSION:
+        type: string
+        required: true
     secrets:
       WRITER_APP_CLIENT_ID:
         required: false
@@ -32,7 +33,9 @@ jobs:
     strategy:
       matrix:
         COMPONENT: ${{ fromJSON(inputs.COMPONENTS) }}
-    uses: slingshot-pipelines/workflows/.github/workflows/check-github-action.yml@check-github-action/v0
+    uses: slingshot-pipelines/workflows/.github/workflows/check-lambda.yml@check-lambda/v0
     with:
       COMPONENT: ${{ matrix.COMPONENT }}
-      GENERATE_DOCS: ${{ inputs.GENERATE_DOCS }}
+      TERRAFORM_VERSION: ${{ inputs.TERRAFORM_VERSION }}
+      TERRAGRUNT_VERSION: ${{ inputs.TERRAGRUNT_VERSION }}
+    secrets: inherit

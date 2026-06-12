@@ -1,0 +1,33 @@
+name: release-libraries
+
+on:
+  workflow_call:
+    inputs:
+      COMPONENTS:
+        type: string
+        required: true
+    secrets:
+      WRITER_APP_CLIENT_ID:
+        required: false
+      WRITER_APP_PRIVATE_KEY:
+        required: false
+
+permissions:
+  contents: write
+  pull-requests: read
+  id-token: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  matrix:
+    strategy:
+      matrix:
+        COMPONENT: ${{ fromJSON(inputs.COMPONENTS )}}
+    uses: slingshot-pipelines/workflows/.github/workflows/release-library.yml@release-library/v0
+    with:
+      COMPONENT: ${{ matrix.COMPONENT }}
+    secrets: inherit

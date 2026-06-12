@@ -104,9 +104,10 @@ CI configuration mistakes.
 
 <!-- AUTO-DOC-INPUT:START - Do not remove or modify this section -->
 
-|   INPUT   |  TYPE  | REQUIRED | DEFAULT | DESCRIPTION |
-|-----------|--------|----------|---------|-------------|
-| COMPONENT | string |   true   |         |             |
+|     INPUT     |  TYPE   | REQUIRED | DEFAULT |                 DESCRIPTION                  |
+|---------------|---------|----------|---------|----------------------------------------------|
+|  COMPONENTS   | string  |   true   |         | A JSON array of GitHub actions <br>to check  |
+| GENERATE_DOCS | boolean |  false   | `true`  |                                              |
 
 <!-- AUTO-DOC-INPUT:END -->
 
@@ -184,9 +185,9 @@ Workflow definition: [check-json-schemas.yml](https://github.com/slingshot-pipel
 
 <!-- AUTO-DOC-INPUT:START - Do not remove or modify this section -->
 
-|   INPUT   |  TYPE  | REQUIRED | DEFAULT | DESCRIPTION |
-|-----------|--------|----------|---------|-------------|
-| COMPONENT | string |   true   |         |             |
+|   INPUT    |  TYPE  | REQUIRED | DEFAULT | DESCRIPTION |
+|------------|--------|----------|---------|-------------|
+| COMPONENTS | string |   true   |         |             |
 
 <!-- AUTO-DOC-INPUT:END -->
 
@@ -235,6 +236,88 @@ valid before deployment.
 |     COMPONENT      | string |   true   |         |             |
 | TERRAFORM_VERSION  | string |   true   |         |             |
 | TERRAGRUNT_VERSION | string |   true   |         |             |
+
+<!-- AUTO-DOC-INPUT:END -->
+
+
+## Secrets
+
+<!-- AUTO-DOC-SECRETS:START - Do not remove or modify this section -->
+
+|         SECRET         | REQUIRED | DESCRIPTION |
+|------------------------|----------|-------------|
+|  WRITER_APP_CLIENT_ID  |  false   |             |
+| WRITER_APP_PRIVATE_KEY |  false   |             |
+
+<!-- AUTO-DOC-SECRETS:END -->
+
+
+## Outputs
+
+<!-- AUTO-DOC-OUTPUT:START - Do not remove or modify this section -->
+No outputs.
+<!-- AUTO-DOC-OUTPUT:END -->
+
+</details>
+<details>
+
+<summary>
+
+### check-lambdas
+</summary>
+
+
+Workflow definition: [check-lambdas.yml](https://github.com/slingshot-pipelines/workflows/blob/main/.github/workflows/check-lambdas.yml)
+
+## Inputs
+
+<!-- AUTO-DOC-INPUT:START - Do not remove or modify this section -->
+
+|       INPUT        |  TYPE  | REQUIRED | DEFAULT | DESCRIPTION |
+|--------------------|--------|----------|---------|-------------|
+|     COMPONENTS     | string |   true   |         |             |
+| TERRAFORM_VERSION  | string |   true   |         |             |
+| TERRAGRUNT_VERSION | string |   true   |         |             |
+
+<!-- AUTO-DOC-INPUT:END -->
+
+
+## Secrets
+
+<!-- AUTO-DOC-SECRETS:START - Do not remove or modify this section -->
+
+|         SECRET         | REQUIRED | DESCRIPTION |
+|------------------------|----------|-------------|
+|  WRITER_APP_CLIENT_ID  |  false   |             |
+| WRITER_APP_PRIVATE_KEY |  false   |             |
+
+<!-- AUTO-DOC-SECRETS:END -->
+
+
+## Outputs
+
+<!-- AUTO-DOC-OUTPUT:START - Do not remove or modify this section -->
+No outputs.
+<!-- AUTO-DOC-OUTPUT:END -->
+
+</details>
+<details>
+
+<summary>
+
+### check-libraries
+</summary>
+
+
+Workflow definition: [check-libraries.yml](https://github.com/slingshot-pipelines/workflows/blob/main/.github/workflows/check-libraries.yml)
+
+## Inputs
+
+<!-- AUTO-DOC-INPUT:START - Do not remove or modify this section -->
+
+|   INPUT    |  TYPE  | REQUIRED | DEFAULT | DESCRIPTION |
+|------------|--------|----------|---------|-------------|
+| COMPONENTS | string |   true   |         |             |
 
 <!-- AUTO-DOC-INPUT:END -->
 
@@ -327,6 +410,46 @@ deployment.
 |   INPUT   |  TYPE  | REQUIRED | DEFAULT | DESCRIPTION |
 |-----------|--------|----------|---------|-------------|
 | COMPONENT | string |   true   |         |             |
+
+<!-- AUTO-DOC-INPUT:END -->
+
+
+## Secrets
+
+<!-- AUTO-DOC-SECRETS:START - Do not remove or modify this section -->
+
+|         SECRET         | REQUIRED | DESCRIPTION |
+|------------------------|----------|-------------|
+|  WRITER_APP_CLIENT_ID  |  false   |             |
+| WRITER_APP_PRIVATE_KEY |  false   |             |
+
+<!-- AUTO-DOC-SECRETS:END -->
+
+
+## Outputs
+
+<!-- AUTO-DOC-OUTPUT:START - Do not remove or modify this section -->
+No outputs.
+<!-- AUTO-DOC-OUTPUT:END -->
+
+</details>
+<details>
+
+<summary>
+
+### check-s3-websites
+</summary>
+
+
+Workflow definition: [check-s3-websites.yml](https://github.com/slingshot-pipelines/workflows/blob/main/.github/workflows/check-s3-websites.yml)
+
+## Inputs
+
+<!-- AUTO-DOC-INPUT:START - Do not remove or modify this section -->
+
+|   INPUT    |  TYPE  | REQUIRED | DEFAULT | DESCRIPTION |
+|------------|--------|----------|---------|-------------|
+| COMPONENTS | string |   true   |         |             |
 
 <!-- AUTO-DOC-INPUT:END -->
 
@@ -619,6 +742,46 @@ available during apply.
 
 <!-- AUTO-DOC-SECRETS:START - Do not remove or modify this section -->
 No secrets.
+<!-- AUTO-DOC-SECRETS:END -->
+
+
+## Outputs
+
+<!-- AUTO-DOC-OUTPUT:START - Do not remove or modify this section -->
+No outputs.
+<!-- AUTO-DOC-OUTPUT:END -->
+
+</details>
+<details>
+
+<summary>
+
+### release-libraries
+</summary>
+
+
+Workflow definition: [release-libraries.yml](https://github.com/slingshot-pipelines/workflows/blob/main/.github/workflows/release-libraries.yml)
+
+## Inputs
+
+<!-- AUTO-DOC-INPUT:START - Do not remove or modify this section -->
+
+|   INPUT    |  TYPE  | REQUIRED | DEFAULT | DESCRIPTION |
+|------------|--------|----------|---------|-------------|
+| COMPONENTS | string |   true   |         |             |
+
+<!-- AUTO-DOC-INPUT:END -->
+
+
+## Secrets
+
+<!-- AUTO-DOC-SECRETS:START - Do not remove or modify this section -->
+
+|         SECRET         | REQUIRED | DESCRIPTION |
+|------------------------|----------|-------------|
+|  WRITER_APP_CLIENT_ID  |  false   |             |
+| WRITER_APP_PRIVATE_KEY |  false   |             |
+
 <!-- AUTO-DOC-SECRETS:END -->
 
 

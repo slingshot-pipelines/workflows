@@ -1,14 +1,16 @@
 # {WORKFLOW_TITLE}
 
-Workflow definition: [check-json-schemas.yml](https://github.com/slingshot-pipelines/workflows/blob/main/.github/workflows/check-json-schemas.yml)
+Workflow definition: [check-lambdas.yml](https://github.com/slingshot-pipelines/workflows/blob/main/.github/workflows/check-lambdas.yml)
 
 ## Inputs
 
 <!-- AUTO-DOC-INPUT:START - Do not remove or modify this section -->
 
-|   INPUT    |  TYPE  | REQUIRED | DEFAULT | DESCRIPTION |
-|------------|--------|----------|---------|-------------|
-| COMPONENTS | string |   true   |         |             |
+|       INPUT        |  TYPE  | REQUIRED | DEFAULT | DESCRIPTION |
+|--------------------|--------|----------|---------|-------------|
+|     COMPONENTS     | string |   true   |         |             |
+| TERRAFORM_VERSION  | string |   true   |         |             |
+| TERRAGRUNT_VERSION | string |   true   |         |             |
 
 <!-- AUTO-DOC-INPUT:END -->
 
