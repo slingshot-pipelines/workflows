@@ -36,3 +36,4 @@ jobs:
     with:
       COMPONENT: ${{ matrix.COMPONENT }}
       GENERATE_DOCS: ${{ inputs.GENERATE_DOCS }}
+    secrets: inherit
