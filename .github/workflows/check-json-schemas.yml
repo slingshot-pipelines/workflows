@@ -62,7 +62,7 @@ jobs:
           echo "path=$COMPONENT_PATH" | tee -a "$GITHUB_OUTPUT"
       -
         name: Install jsonschema
-        uses: sourcemeta/jsonschema@v15.9.0
+        uses: sourcemeta/jsonschema@v16.0.0
       -
         name: Lint and format schemas
         working-directory: ${{ steps.parse-component-info.outputs.path }}
