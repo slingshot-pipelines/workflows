@@ -12,10 +12,11 @@ and left a lock that blocks subsequent plan or apply operations.
 
 <!-- AUTO-DOC-INPUT:START - Do not remove or modify this section -->
 
-| INPUT |  TYPE  | REQUIRED | DEFAULT | DESCRIPTION |
-|-------|--------|----------|---------|-------------|
-| STACK | string |   true   |         |   stack:    |
-| UNIT  | string |   true   |         |    unit:    |
+|   INPUT   |  TYPE  | REQUIRED | DEFAULT | DESCRIPTION |
+|-----------|--------|----------|---------|-------------|
+| COMPONENT | string |   true   |         | component:  |
+|   STACK   | string |   true   |         |   stack:    |
+|   UNIT    | string |   true   |         |    unit:    |
 
 <!-- AUTO-DOC-INPUT:END -->
 

@@ -4,14 +4,18 @@ on:
 
   workflow_call:
     inputs:
+      COMPONENT:
+        description: 'component:'
+        type: string
+        required: true
       STACK:
         description: 'stack:'
         type: string
         required: true
       UNIT:
         description: 'unit:'
-        required: true
         type: string
+        required: true
 
 permissions:
   contents: read
@@ -30,11 +34,73 @@ jobs:
       -
         uses: actions/checkout@v6
       -
+        name: Load component info
+        id: load-component-info
+        uses: slingshot-pipelines/action-component-info@v1
+        with:
+          component: ${{ inputs.COMPONENT }}
+      -
+        name: Parse component info
+        id: parse-component-info
+        env:
+          COMPONENT_INFO: ${{ steps.load-component-info.outputs.info }}
+        run: |
+          COMPONENT_PROJECT=$(echo "$COMPONENT_INFO" | jq -rc '.project')
+          if [[ -z "$COMPONENT_PROJECT" ]]; then
+            >&2 echo "Error determining component project"
+            exit 1
+          fi
+
+          echo "project=$COMPONENT_PROJECT" | tee -a "$GITHUB_OUTPUT"
+
+          COMPONENT_TYPE=$(echo "$COMPONENT_INFO" | jq -rc '.type')
+          if [[ -z "$COMPONENT_TYPE" ]]; then
+            >&2 echo "Error determining component type"
+            exit 1
+          fi
+
+          COMPONENT_PATH=$(echo "$COMPONENT_INFO" | jq -rc '.path')
+          if [[ -z "$COMPONENT_PATH" ]]; then
+            >&2 echo "Error determining component path"
+            exit 1
+          fi
+
+          case "$COMPONENT_TYPE" in
+            lambda)
+              echo "infra-dir=$COMPONENT_PATH/infra" | tee -a "$GITHUB_OUTPUT"
+              ;;
+            terragrunt-infra)
+              echo "infra-dir=$COMPONENT_PATH" | tee -a "$GITHUB_OUTPUT"
+              ;;
+            *)
+              >&2 echo "Unable to determine infrastructure directory for component"
+              exit 1
+          esac
+      -
+        name: Pick lockfile
+        id: pick-lockfile-key
+        env:
+          COMPONENT_PROJECT: ${{ steps.parse-component-info.outputs.project }}
+          COMPONENT_NAME: ${{ inputs.COMPONENT }}
+          STACK_NAME: ${{ inputs.STACK }}
+          UNIT_NAME: ${{ inputs.UNIT }}
+          LOCKFILE_FILENAME: terraform.tfstate.tflock
+        run: |
+          LOCKFILE_KEY=$(printf \
+            '%s/%s/stacks/%s/.terragrunt-stack/%s/%s' \
+            "$COMPONENT_PROJECT" \
+            "$COMPONENT_NAME" \
+            "$STACK_NAME" \
+            "$UNIT_NAME" \
+            "$LOCKFILE_FILENAME")
+
+          echo "lockfile-key=$LOCKFILE_KEY" | tee -a "$GITHUB_OUTPUT"
+      -
         name: Get stack info
         id: stack-info
         uses: slingshot-pipelines/action-terragrunt/stack-info@v0
         with:
-          INFO_FILE: infra/stacks/${{ inputs.STACK }}/stack.yml
+          INFO_FILE: ${{ steps.parse-component-info.outputs.infra-dir }}/stacks/${{ inputs.STACK }}/stack.yml
       -
         name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -45,9 +111,8 @@ jobs:
         name: Delete S3 lockfile
         env:
           STATES_BUCKET: ${{ steps.stack-info.outputs.states-bucket }}
-          LOCKFILE_KEY: stacks/${{ inputs.STACK }}/.terragrunt-stack/${{ inputs.UNIT }}/terraform.tfstate.tflock
+          LOCKFILE_KEY: ${{ steps.pick-lockfile-key.outputs.lockfile-key }}
         run: |
-          LOCKFILE_KEY="${LOCKFILE_KEY#/}"
           LOCKFILE_URI="s3://${STATES_BUCKET}/${LOCKFILE_KEY}"
 
           echo "Deleting lockfile: ${LOCKFILE_URI}"
