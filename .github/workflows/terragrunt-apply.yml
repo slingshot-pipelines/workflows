@@ -59,38 +59,19 @@ jobs:
         with:
           ref: refs/tags/${{ inputs.TAG }}
       -
-        name: Check for reader app credentials
-        id: check-for-reader-app-credentials
-        env:
-          READER_APP_CLIENT_ID: ${{ secrets.READER_APP_CLIENT_ID }}
-          READER_APP_PRIVATE_KEY: ${{ secrets.READER_APP_PRIVATE_KEY }}
-        run: |
-          if [[ -z "$READER_APP_CLIENT_ID" ]]; then
-            echo "No READER_APP_CLIENT_ID provided"
-            exit 0
-          fi
-
-          if [[ -z "$READER_APP_PRIVATE_KEY" ]]; then
-            echo "No READER_APP_PRIVATE_KEY provided"
-            exit 0
-          fi
-
-          echo "set=true" | tee -a "$GITHUB_OUTPUT"
-      -
-        name: Create GitHub App token for reading private modules
-        uses: actions/create-github-app-token@v3
-        if: steps.check-for-reader-app-credentials.outputs.set == 'true'
-        id: reader-app-token
+        name: Fetch app token
+        id: fetch-reader-app-token
+        uses: slingshot-pipelines/action-optional-app-token@v0
         with:
-          client-id: ${{ secrets.READER_APP_CLIENT_ID }}
-          private-key: ${{ secrets.READER_APP_PRIVATE_KEY }}
+          CLIENT_ID: ${{ secrets.READER_APP_CLIENT_ID }}
+          PRIVATE_KEY: ${{ secrets.READER_APP_PRIVATE_KEY }}
       -
         name: Configure git for reading private modules
-        if: steps.check-for-reader-app-credentials.outputs.set == 'true'
+        if: steps.fetch-reader-app-token.outputs.token != ''
         env:
-          READER_APP_TOKEN: ${{ steps.reader-app-token.outputs.token }}
+          READER_APP_TOKEN: ${{ steps.fetch-reader-app-token.outputs.token }}
         run: |
-          git config --global url."https://${READER_APP_TOKEN}@github.com/".insteadOf "https://github.com"
+          git config --global url."https://${READER_APP_TOKEN}@github.com/WandererTrip".insteadOf "https://github.com/WandererTrip"
       -
         name: Install Terraform & Terragrunt
         id: tg-install
