@@ -556,6 +556,8 @@ planning.
 
 |         SECRET         | REQUIRED | DESCRIPTION |
 |------------------------|----------|-------------|
+|  READER_APP_CLIENT_ID  |  false   |             |
+| READER_APP_PRIVATE_KEY |  false   |             |
 |  WRITER_APP_CLIENT_ID  |  false   |             |
 | WRITER_APP_PRIVATE_KEY |  false   |             |
 
@@ -598,6 +600,8 @@ Workflow definition: [check-terragrunt-infras.yml](https://github.com/slingshot-
 
 |         SECRET         | REQUIRED | DESCRIPTION |
 |------------------------|----------|-------------|
+|  READER_APP_CLIENT_ID  |  false   |             |
+| READER_APP_PRIVATE_KEY |  false   |             |
 |  WRITER_APP_CLIENT_ID  |  false   |             |
 | WRITER_APP_PRIVATE_KEY |  false   |             |
 
@@ -779,7 +783,12 @@ available during apply.
 ## Secrets
 
 <!-- AUTO-DOC-SECRETS:START - Do not remove or modify this section -->
-No secrets.
+
+|         SECRET         | REQUIRED | DESCRIPTION |
+|------------------------|----------|-------------|
+|  READER_APP_CLIENT_ID  |  false   |             |
+| READER_APP_PRIVATE_KEY |  false   |             |
+
 <!-- AUTO-DOC-SECRETS:END -->
 
 
@@ -1011,7 +1020,12 @@ than invoked directly.
 ## Secrets
 
 <!-- AUTO-DOC-SECRETS:START - Do not remove or modify this section -->
-No secrets.
+
+|         SECRET         | REQUIRED |                                    DESCRIPTION                                    |
+|------------------------|----------|-----------------------------------------------------------------------------------|
+|  READER_APP_CLIENT_ID  |  false   |  The client ID of the GitHub <br>App used to read from private <br>repositories   |
+| READER_APP_PRIVATE_KEY |  false   | The private key of the GitHub <br>App used to read from private <br>repositories  |
+
 <!-- AUTO-DOC-SECRETS:END -->
 
 
@@ -1059,7 +1073,12 @@ than invoked directly.
 ## Secrets
 
 <!-- AUTO-DOC-SECRETS:START - Do not remove or modify this section -->
-No secrets.
+
+|         SECRET         | REQUIRED |                                    DESCRIPTION                                    |
+|------------------------|----------|-----------------------------------------------------------------------------------|
+|  READER_APP_CLIENT_ID  |  false   |  The client ID of the GitHub <br>App used to read from private <br>repositories   |
+| READER_APP_PRIVATE_KEY |  false   | The private key of the GitHub <br>App used to read from private <br>repositories  |
+
 <!-- AUTO-DOC-SECRETS:END -->
 
 

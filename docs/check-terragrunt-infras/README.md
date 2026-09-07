@@ -21,6 +21,8 @@ Workflow definition: [check-terragrunt-infras.yml](https://github.com/slingshot-
 
 |         SECRET         | REQUIRED | DESCRIPTION |
 |------------------------|----------|-------------|
+|  READER_APP_CLIENT_ID  |  false   |             |
+| READER_APP_PRIVATE_KEY |  false   |             |
 |  WRITER_APP_CLIENT_ID  |  false   |             |
 | WRITER_APP_PRIVATE_KEY |  false   |             |
 

@@ -29,7 +29,12 @@ than invoked directly.
 ## Secrets
 
 <!-- AUTO-DOC-SECRETS:START - Do not remove or modify this section -->
-No secrets.
+
+|         SECRET         | REQUIRED |                                    DESCRIPTION                                    |
+|------------------------|----------|-----------------------------------------------------------------------------------|
+|  READER_APP_CLIENT_ID  |  false   |  The client ID of the GitHub <br>App used to read from private <br>repositories   |
+| READER_APP_PRIVATE_KEY |  false   | The private key of the GitHub <br>App used to read from private <br>repositories  |
+
 <!-- AUTO-DOC-SECRETS:END -->
 
 
