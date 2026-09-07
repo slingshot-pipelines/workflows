@@ -71,7 +71,7 @@ jobs:
         env:
           READER_APP_TOKEN: ${{ steps.fetch-reader-app-token.outputs.token }}
         run: |
-          git config --global url."https://${READER_APP_TOKEN}@github.com/WandererTrip".insteadOf "https://github.com/WandererTrip"
+          git config --global url."https://x-access-token:${READER_APP_TOKEN}@github.com/WandererTrip".insteadOf "https://github.com/WandererTrip"
       -
         name: Install Terraform & Terragrunt
         id: tg-install
