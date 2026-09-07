@@ -125,7 +125,7 @@ jobs:
       -
         name: Cache build output
         id: cache-build-output
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           key: ${{ steps.pick-cache-key.outputs.cache-key }}
           path: ${{ steps.parse-component-info.outputs.build-path }}

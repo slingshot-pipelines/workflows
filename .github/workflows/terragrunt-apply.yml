@@ -131,7 +131,7 @@ jobs:
       -
         name: Restore build cache
         if: ${{ steps.check-build-cache-inputs.outputs.set == 'true' }}
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           key: ${{ inputs.BUILD_CACHE_KEY }}
           path: ${{ inputs.BUILD_CACHE_PATH }}
