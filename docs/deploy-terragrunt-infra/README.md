@@ -26,7 +26,12 @@ available during apply.
 ## Secrets
 
 <!-- AUTO-DOC-SECRETS:START - Do not remove or modify this section -->
-No secrets.
+
+|         SECRET         | REQUIRED | DESCRIPTION |
+|------------------------|----------|-------------|
+|  READER_APP_CLIENT_ID  |  false   |             |
+| READER_APP_PRIVATE_KEY |  false   |             |
+
 <!-- AUTO-DOC-SECRETS:END -->
 
 

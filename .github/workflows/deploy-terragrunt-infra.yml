@@ -18,6 +18,11 @@ on:
       TERRAGRUNT_VERSION:
         type: string
         required: true
+    secrets:
+      READER_APP_CLIENT_ID:
+        required: false
+      READER_APP_PRIVATE_KEY:
+        required: false
 
 permissions:
   contents: read
@@ -69,3 +74,4 @@ jobs:
       TERRAGRUNT_VERSION: ${{ inputs.TERRAGRUNT_VERSION }}
       TERRAFORM_VERSION: ${{ inputs.TERRAFORM_VERSION }}
       STACKS_DIR: ${{ needs.parse-component-info.outputs.STACKS_DIR }}
+    secrets: inherit
