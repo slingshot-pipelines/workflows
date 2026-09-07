@@ -137,7 +137,7 @@ jobs:
           path: ${{ inputs.BUILD_CACHE_PATH }}
       -
         name: terragrunt plan
-        uses: slingshot-pipelines/action-terragrunt/exec@v0
+        uses: slingshot-pipelines/action-terragrunt/exec@github-token
         env:
           PIPELINE_PROJECT: ${{ steps.extract-component-project.outputs.project }}
           PIPELINE_COMPONENT: ${{ inputs.COMPONENT }}
