@@ -40,6 +40,10 @@ jobs:
     uses: slingshot-pipelines/workflows/.github/workflows/check-terragrunt-infra.yml@check-terragrunt-infra/v0
     with:
       COMPONENT: ${{ matrix.COMPONENT }}
-      TERRAFORM_VERSION: ${{ inputs.TERRAFORM_VERSION}}
+      TERRAFORM_VERSION: ${{ inputs.TERRAFORM_VERSION }}
       TERRAGRUNT_VERSION: ${{ inputs.TERRAGRUNT_VERSION }}
-    secrets: inherit
+    secrets:
+      READER_APP_CLIENT_ID: ${{ secrets.READER_APP_CLIENT_ID }}
+      READER_APP_PRIVATE_KEY: ${{ secrets.READER_APP_PRIVATE_KEY }}
+      WRITER_APP_CLIENT_ID: ${{ secrets.WRITER_APP_CLIENT_ID }}
+      WRITER_APP_PRIVATE_KEY: ${{ secrets.WRITER_APP_PRIVATE_KEY }}

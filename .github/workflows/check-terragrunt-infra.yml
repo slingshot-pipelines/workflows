@@ -138,4 +138,6 @@ jobs:
       STACKS: ${{ needs.build-matrix.outputs.changes }}
       BUILD_CACHE_KEY: ${{ inputs.BUILD_CACHE_KEY }}
       BUILD_CACHE_PATH: ${{ inputs.BUILD_CACHE_PATH }}
-    secrets: inherit
+    secrets:
+      READER_APP_CLIENT_ID: ${{ secrets.READER_APP_CLIENT_ID }}
+      READER_APP_PRIVATE_KEY: ${{ secrets.READER_APP_PRIVATE_KEY }}
