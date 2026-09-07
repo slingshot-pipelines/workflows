@@ -25,6 +25,10 @@ on:
         type: string
         description: If set, the action will try to restore a build cache for the specified path
     secrets:
+      READER_APP_CLIENT_ID:
+        required: false
+      READER_APP_PRIVATE_KEY:
+        required: false
       WRITER_APP_CLIENT_ID:
         required: false
       WRITER_APP_PRIVATE_KEY:
@@ -134,3 +138,4 @@ jobs:
       STACKS: ${{ needs.build-matrix.outputs.changes }}
       BUILD_CACHE_KEY: ${{ inputs.BUILD_CACHE_KEY }}
       BUILD_CACHE_PATH: ${{ inputs.BUILD_CACHE_PATH }}
+    secrets: inherit

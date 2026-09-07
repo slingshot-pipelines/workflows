@@ -13,6 +13,10 @@ on:
         type: string
         required: true
     secrets:
+      READER_APP_CLIENT_ID:
+        required: false
+      READER_APP_PRIVATE_KEY:
+        required: false
       WRITER_APP_CLIENT_ID:
         required: false
       WRITER_APP_PRIVATE_KEY:
