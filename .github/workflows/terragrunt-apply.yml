@@ -65,6 +65,8 @@ jobs:
         with:
           CLIENT_ID: ${{ secrets.READER_APP_CLIENT_ID }}
           PRIVATE_KEY: ${{ secrets.READER_APP_PRIVATE_KEY }}
+          OWNER: ${{ github.repository_owner }}
+          REPOSITORIES: ''
       -
         name: Configure git for reading private modules
         if: steps.fetch-reader-app-token.outputs.token != ''
