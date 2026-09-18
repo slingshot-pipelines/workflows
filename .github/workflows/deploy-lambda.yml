@@ -105,7 +105,7 @@ jobs:
 
           echo "source-language=$SOURCE_LANGUAGE" | tee -a "$GITHUB_OUTPUT"
       -
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         if: ${{ steps.component-info.outputs.language == 'go' }}
         with:
           go-version-file: ${{ steps.parse-component-info.outputs.src-path }}/go.mod
