@@ -81,7 +81,7 @@ jobs:
             echo "cf-distribution=$CF_DISTRIBUTION";
           } | tee -a "$GITHUB_OUTPUT"
       -
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: ${{ steps.extract-component-info.outputs.path }}/package.json
           cache: npm

@@ -107,7 +107,7 @@ jobs:
             echo "build=$HAS_BUILD_TARGET";
           } | tee -a "$GITHUB_OUTPUT"
       -
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         if: ${{ steps.parse-component-info.outputs.source-language == 'node' }}
         with:
           node-version-file: ${{ steps.parse-component-info.outputs.path }}/package.json
