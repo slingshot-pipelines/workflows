@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@v6
       -
         name: Install jsonschema
-        uses: sourcemeta/jsonschema@v15.9.0
+        uses: sourcemeta/jsonschema@v16.2.0
       -
         name: Download JSON schemas
         id: download-schemas
