@@ -31,6 +31,10 @@ on:
         required: false
         type: string
         description: If set, the action will try to restore a build cache for the specified path
+      SLACK_CHANNEL:
+        required: false
+        type: string
+        description: If set (along with the SLACK_BOT_TOKEN secret), a Slack message announcing the deployment result will be sent to this channel
     secrets:
       READER_APP_CLIENT_ID:
         required: false
@@ -38,6 +42,9 @@ on:
       READER_APP_PRIVATE_KEY:
         required: false
         description: The private key of the GitHub App used to read from private repositories
+      SLACK_BOT_TOKEN:
+        required: false
+        description: If set (along with the SLACK_CHANNEL input), a Slack message announcing the deployment result will be sent
 
 permissions:
   contents: read
@@ -147,3 +154,35 @@ jobs:
         with:
           working-directory: ${{ inputs.STACKS_DIR }}/${{ inputs.STACK }}
           command: stack run apply
+      -
+        name: Check for Slack notify inputs
+        id: check-slack-notify-inputs
+        if: always()
+        env:
+          INPUT_SLACK_CHANNEL: ${{ inputs.SLACK_CHANNEL }}
+          INPUT_SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        run: |
+          if [[ -z "$INPUT_SLACK_CHANNEL" ]]; then
+            echo "No SLACK_CHANNEL provided"
+            exit 0
+          fi
+
+          if [[ -z "$INPUT_SLACK_BOT_TOKEN" ]]; then
+            echo "No SLACK_BOT_TOKEN provided"
+            exit 0
+          fi
+
+          echo "set=true" | tee -a "$GITHUB_OUTPUT"
+      -
+        name: Notify Slack
+        if: ${{ always() && steps.check-slack-notify-inputs.outputs.set == 'true' }}
+        continue-on-error: true
+        uses: slingshot-pipelines/action-slack-deployment-message@v0
+        with:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL: ${{ inputs.SLACK_CHANNEL }}
+          PROJECT: ${{ steps.extract-component-project.outputs.project }}
+          COMPONENT: ${{ inputs.COMPONENT }}
+          VERSION: ${{ inputs.TAG }}
+          ENVIRONMENT: ${{ inputs.STACK }}
+          JOB_STATUS: ${{ job.status }}
