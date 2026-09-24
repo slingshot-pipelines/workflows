@@ -12,13 +12,14 @@ available during apply.
 
 <!-- AUTO-DOC-INPUT:START - Do not remove or modify this section -->
 
-|       INPUT        |  TYPE  | REQUIRED | DEFAULT | DESCRIPTION |
-|--------------------|--------|----------|---------|-------------|
-|     COMPONENT      | string |   true   |         |             |
-|    ENVIRONMENT     | string |   true   |         |             |
-|        TAG         | string |   true   |         |             |
-| TERRAFORM_VERSION  | string |   true   |         |             |
-| TERRAGRUNT_VERSION | string |   true   |         |             |
+|       INPUT        |  TYPE  | REQUIRED | DEFAULT |                                                              DESCRIPTION                                                               |
+|--------------------|--------|----------|---------|----------------------------------------------------------------------------------------------------------------------------------------|
+|     COMPONENT      | string |   true   |         |                                                                                                                                        |
+|    ENVIRONMENT     | string |   true   |         |                                                                                                                                        |
+|   SLACK_CHANNEL    | string |  false   |         | If set (along with the SLACK_BOT_TOKEN secret), a Slack message <br>announcing the deployment result will be <br>sent to this channel  |
+|        TAG         | string |   true   |         |                                                                                                                                        |
+| TERRAFORM_VERSION  | string |   true   |         |                                                                                                                                        |
+| TERRAGRUNT_VERSION | string |   true   |         |                                                                                                                                        |
 
 <!-- AUTO-DOC-INPUT:END -->
 
@@ -26,7 +27,13 @@ available during apply.
 ## Secrets
 
 <!-- AUTO-DOC-SECRETS:START - Do not remove or modify this section -->
-No secrets.
+
+|         SECRET         | REQUIRED |                                                     DESCRIPTION                                                     |
+|------------------------|----------|---------------------------------------------------------------------------------------------------------------------|
+|  READER_APP_CLIENT_ID  |  false   |                                                                                                                     |
+| READER_APP_PRIVATE_KEY |  false   |                                                                                                                     |
+|    SLACK_BOT_TOKEN     |  false   | If set (along with the SLACK_CHANNEL input), a Slack message <br>announcing the deployment result will be <br>sent  |
+
 <!-- AUTO-DOC-SECRETS:END -->
 
 

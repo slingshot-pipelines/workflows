@@ -18,11 +18,18 @@ on:
       TERRAGRUNT_VERSION:
         type: string
         required: true
+      SLACK_CHANNEL:
+        required: false
+        type: string
+        description: If set (along with the SLACK_BOT_TOKEN secret), a Slack message announcing the deployment result will be sent to this channel
     secrets:
       WRITER_APP_CLIENT_ID:
         required: false
       WRITER_APP_PRIVATE_KEY:
         required: false
+      SLACK_BOT_TOKEN:
+        required: false
+        description: If set (along with the SLACK_CHANNEL input), a Slack message announcing the deployment result will be sent
 
 permissions:
   contents: read
@@ -105,7 +112,7 @@ jobs:
 
           echo "source-language=$SOURCE_LANGUAGE" | tee -a "$GITHUB_OUTPUT"
       -
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         if: ${{ steps.component-info.outputs.language == 'go' }}
         with:
           go-version-file: ${{ steps.parse-component-info.outputs.src-path }}/go.mod
@@ -125,7 +132,7 @@ jobs:
       -
         name: Cache build output
         id: cache-build-output
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           key: ${{ steps.pick-cache-key.outputs.cache-key }}
           path: ${{ steps.parse-component-info.outputs.build-path }}
@@ -143,3 +150,6 @@ jobs:
       STACKS_DIR: ${{ needs.build.outputs.infra-path }}/stacks
       BUILD_CACHE_KEY: ${{ needs.build.outputs.cache-key }}
       BUILD_CACHE_PATH: ${{ needs.build.outputs.build-path }}
+      SLACK_CHANNEL: ${{ inputs.SLACK_CHANNEL }}
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}

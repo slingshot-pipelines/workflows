@@ -29,6 +29,13 @@ on:
         required: false
         type: string
         description: If set, the action will try to restore a build cache for the specified path
+    secrets:
+      READER_APP_CLIENT_ID:
+        required: false
+        description: The client ID of the GitHub App used to read from private repositories
+      READER_APP_PRIVATE_KEY:
+        required: false
+        description: The private key of the GitHub App used to read from private repositories
 
 permissions:
   contents: read
@@ -51,6 +58,22 @@ jobs:
     steps:
       -
         uses: actions/checkout@v7
+      -
+        name: Fetch app token
+        id: fetch-reader-app-token
+        uses: slingshot-pipelines/action-optional-app-token@v0
+        with:
+          CLIENT_ID: ${{ secrets.READER_APP_CLIENT_ID }}
+          PRIVATE_KEY: ${{ secrets.READER_APP_PRIVATE_KEY }}
+          OWNER: ${{ github.repository_owner }}
+          REPOSITORIES: ''
+      -
+        name: Configure git for reading private modules
+        if: steps.fetch-reader-app-token.outputs.token != ''
+        env:
+          READER_APP_TOKEN: ${{ steps.fetch-reader-app-token.outputs.token }}
+        run: |
+          git config --global url."https://x-access-token:${READER_APP_TOKEN}@github.com/WandererTrip".insteadOf "https://github.com/WandererTrip"
       -
         name: Install Terraform & Terragrunt
         id: tg-install
@@ -110,7 +133,7 @@ jobs:
       -
         name: Restore build cache
         if: ${{ steps.check-build-cache-inputs.outputs.set == 'true' }}
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           key: ${{ inputs.BUILD_CACHE_KEY }}
           path: ${{ inputs.BUILD_CACHE_PATH }}
