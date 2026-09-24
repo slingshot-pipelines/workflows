@@ -98,7 +98,7 @@ jobs:
 
           echo "language=$SRC_LANG" | tee -a "$GITHUB_OUTPUT"
       -
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         if: ${{ steps.parse-component-info.outputs.language == 'go' }}
         with:
           go-version-file: ${{ steps.parse-component-info.outputs.src-path }}/go.mod
@@ -160,7 +160,7 @@ jobs:
       -
         name: Cache build output
         id: cache-build-output
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           key: ${{ steps.pick-build-cache-params.outputs.cache-key }}
           path: ${{ steps.pick-build-cache-params.outputs.cache-path }}
