@@ -18,6 +18,18 @@ on:
       TERRAGRUNT_VERSION:
         type: string
         required: true
+      SLACK_CHANNEL:
+        required: false
+        type: string
+        description: If set (along with the SLACK_BOT_TOKEN secret), a Slack message announcing the deployment result will be sent to this channel
+    secrets:
+      READER_APP_CLIENT_ID:
+        required: false
+      READER_APP_PRIVATE_KEY:
+        required: false
+      SLACK_BOT_TOKEN:
+        required: false
+        description: If set (along with the SLACK_CHANNEL input), a Slack message announcing the deployment result will be sent
 
 permissions:
   contents: read
@@ -69,3 +81,8 @@ jobs:
       TERRAGRUNT_VERSION: ${{ inputs.TERRAGRUNT_VERSION }}
       TERRAFORM_VERSION: ${{ inputs.TERRAFORM_VERSION }}
       STACKS_DIR: ${{ needs.parse-component-info.outputs.STACKS_DIR }}
+      SLACK_CHANNEL: ${{ inputs.SLACK_CHANNEL }}
+    secrets:
+      READER_APP_CLIENT_ID: ${{ secrets.READER_APP_CLIENT_ID }}
+      READER_APP_PRIVATE_KEY: ${{ secrets.READER_APP_PRIVATE_KEY }}
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}

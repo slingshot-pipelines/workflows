@@ -160,7 +160,7 @@ jobs:
       -
         name: Cache build output
         id: cache-build-output
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           key: ${{ steps.pick-build-cache-params.outputs.cache-key }}
           path: ${{ steps.pick-build-cache-params.outputs.cache-path }}
