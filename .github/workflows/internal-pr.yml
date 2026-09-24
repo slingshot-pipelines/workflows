@@ -22,7 +22,7 @@ jobs:
       changed-components-by-type: ${{ steps.changed-components.outputs.changed-components-by-type }}
     steps:
       -
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       -
         name: Detect changed components
         id: changed-components
@@ -59,7 +59,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       -
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       -
         name: Emit PR ready check
         uses: slingshot-pipelines/action-pr-ready@v0
