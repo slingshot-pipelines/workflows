@@ -83,13 +83,17 @@ jobs:
             exit 1
           fi
 
-          if [[ "$COMPONENT_TYPE" == "lambda" ]]; then
-            echo "units-dir=$COMPONENT_PATH/infra/units" | tee -a "$GITHUB_OUTPUT"
-            echo "stacks-dir=$COMPONENT_PATH/infra/stacks" | tee -a "$GITHUB_OUTPUT"
-          else
-            echo "units-dir=$COMPONENT_PATH/units" | tee -a "$GITHUB_OUTPUT"
-            echo "stacks-dir=$COMPONENT_PATH/stacks" | tee -a "$GITHUB_OUTPUT"
-          fi
+          case "$COMPONENT_TYPE" in
+            lambda|s3-website)
+              INFRA_SUBPATH=$(echo "$COMPONENT_INFO" | jq -rc '.subpaths.infra // "infra"')
+              echo "units-dir=$COMPONENT_PATH/$INFRA_SUBPATH/units" | tee -a "$GITHUB_OUTPUT"
+              echo "stacks-dir=$COMPONENT_PATH/$INFRA_SUBPATH/stacks" | tee -a "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "units-dir=$COMPONENT_PATH/units" | tee -a "$GITHUB_OUTPUT"
+              echo "stacks-dir=$COMPONENT_PATH/stacks" | tee -a "$GITHUB_OUTPUT"
+              ;;
+          esac
       -
         name: Detect changes
         uses: slingshot-pipelines/action-terragrunt/matrix@v0
