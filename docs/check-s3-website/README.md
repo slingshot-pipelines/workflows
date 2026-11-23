@@ -17,11 +17,11 @@ output of `subpaths.build` is cached, and the Terragrunt infrastructure in
 
 <!-- AUTO-DOC-INPUT:START - Do not remove or modify this section -->
 
-|       INPUT        |  TYPE  | REQUIRED | DEFAULT |                                          DESCRIPTION                                          |
-|--------------------|--------|----------|---------|-----------------------------------------------------------------------------------------------|
-|     COMPONENT      | string |   true   |         |                                                                                               |
-| TERRAFORM_VERSION  | string |  false   |         | Required when the component declares `subpaths`, since the <br>infrastructure is then checked |
-| TERRAGRUNT_VERSION | string |  false   |         | Required when the component declares `subpaths`, since the <br>infrastructure is then checked |
+|       INPUT        |  TYPE  | REQUIRED | DEFAULT |                                          DESCRIPTION                                           |
+|--------------------|--------|----------|---------|------------------------------------------------------------------------------------------------|
+|     COMPONENT      | string |   true   |         |                                                                                                |
+| TERRAFORM_VERSION  | string |  false   |         | Required when the component declares `subpaths`, <br>since the infrastructure is then checked  |
+| TERRAGRUNT_VERSION | string |  false   |         | Required when the component declares `subpaths`, <br>since the infrastructure is then checked  |
 
 <!-- AUTO-DOC-INPUT:END -->
 

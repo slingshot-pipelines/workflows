@@ -20,14 +20,14 @@ no infrastructure is applied.
 
 <!-- AUTO-DOC-INPUT:START - Do not remove or modify this section -->
 
-|       INPUT        |  TYPE  | REQUIRED | DEFAULT |                                                                                              DESCRIPTION                                                                                               |
-|--------------------|--------|----------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-|     COMPONENT      | string |   true   |         |                                                                                                                                                                                                        |
-|    ENVIRONMENT     | string |   true   |         |                                                                                                                                                                                                        |
-|   SLACK_CHANNEL    | string |  false   |         | If set (along with the SLACK_BOT_TOKEN secret), a Slack message <br>announcing the infrastructure deployment result will be sent <br>to this channel. Only used when the component declares `subpaths` |
-|        TAG         | string |   true   |         |                                                                                                                                                                                                        |
-| TERRAFORM_VERSION  | string |  false   |         |                                                     Required when the component declares `subpaths`, since the <br>infrastructure is then applied                                                      |
-| TERRAGRUNT_VERSION | string |  false   |         |                                                     Required when the component declares `subpaths`, since the <br>infrastructure is then applied                                                      |
+|       INPUT        |  TYPE  | REQUIRED | DEFAULT |                                                                                                 DESCRIPTION                                                                                                 |
+|--------------------|--------|----------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|     COMPONENT      | string |   true   |         |                                                                                                                                                                                                             |
+|    ENVIRONMENT     | string |   true   |         |                                                                                                                                                                                                             |
+|   SLACK_CHANNEL    | string |  false   |         | If set (along with the SLACK_BOT_TOKEN secret), a Slack message <br>announcing the infrastructure deployment result will <br>be sent to this channel. Only <br>used when the component declares `subpaths`  |
+|        TAG         | string |   true   |         |                                                                                                                                                                                                             |
+| TERRAFORM_VERSION  | string |  false   |         |                                                       Required when the component declares `subpaths`, <br>since the infrastructure is then applied                                                         |
+| TERRAGRUNT_VERSION | string |  false   |         |                                                       Required when the component declares `subpaths`, <br>since the infrastructure is then applied                                                         |
 
 <!-- AUTO-DOC-INPUT:END -->
 
@@ -36,9 +36,9 @@ no infrastructure is applied.
 
 <!-- AUTO-DOC-SECRETS:START - Do not remove or modify this section -->
 
-|      SECRET     | REQUIRED |                                                            DESCRIPTION                                                            |
-|-----------------|----------|-----------------------------------------------------------------------------------------------------------------------------------|
-| SLACK_BOT_TOKEN |  false   | If set (along with the SLACK_CHANNEL input), a Slack message <br>announcing the infrastructure deployment result will be <br>sent |
+|     SECRET      | REQUIRED |                                                            DESCRIPTION                                                             |
+|-----------------|----------|------------------------------------------------------------------------------------------------------------------------------------|
+| SLACK_BOT_TOKEN |  false   | If set (along with the SLACK_CHANNEL input), a Slack message <br>announcing the infrastructure deployment result will <br>be sent  |
 
 <!-- AUTO-DOC-SECRETS:END -->
 
