@@ -8,13 +8,20 @@ if those targets exist, then builds the site with `npm run build`.
 Use this workflow to verify that a frontend component compiles successfully before
 deployment.
 
+If the component declares `subpaths`, the checks run in `subpaths.src`, the build
+output of `subpaths.build` is cached, and the Terragrunt infrastructure in
+`subpaths.infra` is also checked (lint and plan) with that build output available.
+`TERRAFORM_VERSION` and `TERRAGRUNT_VERSION` are required in that case.
+
 ## Inputs
 
 <!-- AUTO-DOC-INPUT:START - Do not remove or modify this section -->
 
-|   INPUT   |  TYPE  | REQUIRED | DEFAULT | DESCRIPTION |
-|-----------|--------|----------|---------|-------------|
-| COMPONENT | string |   true   |         |             |
+|       INPUT        |  TYPE  | REQUIRED | DEFAULT |                                          DESCRIPTION                                          |
+|--------------------|--------|----------|---------|-----------------------------------------------------------------------------------------------|
+|     COMPONENT      | string |   true   |         |                                                                                               |
+| TERRAFORM_VERSION  | string |  false   |         | Required when the component declares `subpaths`, since the <br>infrastructure is then checked |
+| TERRAGRUNT_VERSION | string |  false   |         | Required when the component declares `subpaths`, since the <br>infrastructure is then checked |
 
 <!-- AUTO-DOC-INPUT:END -->
 

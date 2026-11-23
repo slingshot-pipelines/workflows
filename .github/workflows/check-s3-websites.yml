@@ -1,4 +1,4 @@
-name: check-s3-website
+name: check-s3-websites
 
 on:
 
@@ -7,6 +7,12 @@ on:
       COMPONENTS:
         type: string
         required: true
+      TERRAFORM_VERSION:
+        type: string
+        required: false
+      TERRAGRUNT_VERSION:
+        type: string
+        required: false
     secrets:
       WRITER_APP_CLIENT_ID:
         required: false
@@ -20,6 +26,7 @@ defaults:
 permissions:
   contents: read
   id-token: write
+  pull-requests: write
 
 jobs:
 
@@ -30,4 +37,6 @@ jobs:
     uses: slingshot-pipelines/workflows/.github/workflows/check-s3-website.yml@check-s3-website/v0
     with:
       COMPONENT: ${{ matrix.COMPONENT }}
+      TERRAFORM_VERSION: ${{ inputs.TERRAFORM_VERSION }}
+      TERRAGRUNT_VERSION: ${{ inputs.TERRAGRUNT_VERSION }}
     secrets: inherit

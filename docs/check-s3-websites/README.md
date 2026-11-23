@@ -6,9 +6,11 @@ Workflow definition: [check-s3-websites.yml](https://github.com/slingshot-pipeli
 
 <!-- AUTO-DOC-INPUT:START - Do not remove or modify this section -->
 
-|   INPUT    |  TYPE  | REQUIRED | DEFAULT | DESCRIPTION |
-|------------|--------|----------|---------|-------------|
-| COMPONENTS | string |   true   |         |             |
+|       INPUT        |  TYPE  | REQUIRED | DEFAULT | DESCRIPTION |
+|--------------------|--------|----------|---------|-------------|
+|     COMPONENTS     | string |   true   |         |             |
+| TERRAFORM_VERSION  | string |  false   |         |             |
+| TERRAGRUNT_VERSION | string |  false   |         |             |
 
 <!-- AUTO-DOC-INPUT:END -->
 

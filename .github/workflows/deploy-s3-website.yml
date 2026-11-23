@@ -13,6 +13,22 @@ on:
       ENVIRONMENT:
         type: string
         required: true
+      TERRAFORM_VERSION:
+        type: string
+        required: false
+        description: Required when the component declares `subpaths`, since the infrastructure is then applied
+      TERRAGRUNT_VERSION:
+        type: string
+        required: false
+        description: Required when the component declares `subpaths`, since the infrastructure is then applied
+      SLACK_CHANNEL:
+        required: false
+        type: string
+        description: If set (along with the SLACK_BOT_TOKEN secret), a Slack message announcing the infrastructure deployment result will be sent to this channel. Only used when the component declares `subpaths`
+    secrets:
+      SLACK_BOT_TOKEN:
+        required: false
+        description: If set (along with the SLACK_CHANNEL input), a Slack message announcing the infrastructure deployment result will be sent
 
 defaults:
   run:
@@ -21,11 +37,19 @@ defaults:
 permissions:
   contents: read
   id-token: write
+  pull-requests: write
 
 jobs:
 
-  deploy:
+  build:
+    name: (${{ inputs.COMPONENT }}) build
     runs-on: ubuntu-latest
+    outputs:
+      has-infra: ${{ steps.extract-component-info.outputs.has-infra }}
+      path: ${{ steps.extract-component-info.outputs.path }}
+      build-path: ${{ steps.extract-component-info.outputs.build-path }}
+      infra-path: ${{ steps.extract-component-info.outputs.infra-path }}
+      cache-key: ${{ steps.pick-cache-key.outputs.cache-key }}
     steps:
       -
         uses: actions/checkout@v7
@@ -42,6 +66,8 @@ jobs:
         id: extract-component-info
         env:
           COMPONENT_INFO: ${{ steps.component-info.outputs.info }}
+          TERRAFORM_VERSION: ${{ inputs.TERRAFORM_VERSION }}
+          TERRAGRUNT_VERSION: ${{ inputs.TERRAGRUNT_VERSION }}
         run: |
           COMPONENT_PATH=$(echo "$COMPONENT_INFO" | jq -rc '.path // ""')
           if [[ -z "$COMPONENT_PATH" ]]; then
@@ -50,10 +76,128 @@ jobs:
           fi
 
           echo "path=$COMPONENT_PATH" | tee -a "$GITHUB_OUTPUT"
+
+          HAS_SUBPATHS=$(echo "$COMPONENT_INFO" | jq -rc 'has("subpaths") and (.subpaths != null)')
+          if [[ "$HAS_SUBPATHS" == "true" ]]; then
+            SRC_SUBPATH=$(echo "$COMPONENT_INFO" | jq -rc '.subpaths.src // ""')
+            BUILD_SUBPATH=$(echo "$COMPONENT_INFO" | jq -rc '.subpaths.build // ""')
+            INFRA_SUBPATH=$(echo "$COMPONENT_INFO" | jq -rc '.subpaths.infra // ""')
+            if [[ -z "$SRC_SUBPATH" || -z "$BUILD_SUBPATH" || -z "$INFRA_SUBPATH" ]]; then
+              >&2 echo "Could not determine source, build and infra subpaths"
+              exit 1
+            fi
+
+            if [[ -z "$TERRAFORM_VERSION" || -z "$TERRAGRUNT_VERSION" ]]; then
+              >&2 echo "TERRAFORM_VERSION and TERRAGRUNT_VERSION are required for components with subpaths"
+              exit 1
+            fi
+
+            SRC_PATH="$COMPONENT_PATH/$SRC_SUBPATH"
+            BUILD_PATH="$COMPONENT_PATH/$BUILD_SUBPATH"
+            INFRA_PATH="$COMPONENT_PATH/$INFRA_SUBPATH"
+          else
+            # Without subpaths, the source is the component path, the build
+            # output is dist, and there is no infrastructure to apply
+            SRC_PATH="$COMPONENT_PATH"
+            BUILD_PATH="$COMPONENT_PATH/dist"
+            INFRA_PATH=""
+          fi
+
+          {
+            echo "src-path=$SRC_PATH";
+            echo "build-path=$BUILD_PATH";
+            echo "infra-path=$INFRA_PATH";
+            echo "has-infra=$HAS_SUBPATHS";
+          } | tee -a "$GITHUB_OUTPUT"
+      -
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: ${{ steps.extract-component-info.outputs.src-path }}/package.json
+          cache: npm
+          cache-dependency-path: ${{ steps.extract-component-info.outputs.src-path }}/package-lock.json
+      -
+        name: Install dependencies
+        working-directory: ${{ steps.extract-component-info.outputs.src-path }}
+        run: |
+          npm ci
+      -
+        name: Compile website
+        working-directory: ${{ steps.extract-component-info.outputs.src-path }}
+        env:
+          DEPLOYMENT_FILE: ${{ github.workspace }}/${{ steps.extract-component-info.outputs.path }}/deployments/${{ inputs.ENVIRONMENT }}/deployment.yml
+        run: |
+          echo "::group::Load environment variables from deployment file"
+
+          if [[ -f "$DEPLOYMENT_FILE" ]]; then
+            KEYS=$(cat "$DEPLOYMENT_FILE" | yq '.env // {} | keys | .[]')
+            while IFS='' read -r KEY && [[ -n "$KEY" ]]; do
+              VALUE=$(cat "$DEPLOYMENT_FILE" \
+                | yq '.env // {} | .["'"$KEY"'"]')
+
+              echo "$KEY=$VALUE"
+              declare -x "$KEY=$VALUE"
+            done <<< "$KEYS"
+          else
+            echo "No deployment file found; skipping"
+          fi
+
+          echo "::endgroup::"
+
+          make build
+      -
+        name: Pick cache key
+        id: pick-cache-key
+        env:
+          CACHE_KEY: ${{ inputs.COMPONENT }}-${{ inputs.ENVIRONMENT }}-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          echo "cache-key=$CACHE_KEY" | tee -a "$GITHUB_OUTPUT"
+      -
+        name: Cache build output
+        uses: actions/cache/save@v6
+        with:
+          key: ${{ steps.pick-cache-key.outputs.cache-key }}
+          path: ${{ steps.extract-component-info.outputs.build-path }}
+
+  apply-infra:
+    name: (${{ inputs.COMPONENT }}) terragrunt-apply
+    needs: [build]
+    if: ${{ needs.build.outputs.has-infra == 'true' }}
+    uses: slingshot-pipelines/workflows/.github/workflows/terragrunt-apply.yml@terragrunt-apply/v1
+    with:
+      COMPONENT: ${{ inputs.COMPONENT }}
+      STACK: ${{ inputs.ENVIRONMENT }}
+      TAG: ${{ inputs.TAG }}
+      TERRAGRUNT_VERSION: ${{ inputs.TERRAGRUNT_VERSION }}
+      TERRAFORM_VERSION: ${{ inputs.TERRAFORM_VERSION }}
+      STACKS_DIR: ${{ needs.build.outputs.infra-path }}/stacks
+      BUILD_CACHE_KEY: ${{ needs.build.outputs.cache-key }}
+      BUILD_CACHE_PATH: ${{ needs.build.outputs.build-path }}
+      SLACK_CHANNEL: ${{ inputs.SLACK_CHANNEL }}
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+  upload:
+    name: (${{ inputs.COMPONENT }}) upload
+    needs: [build, apply-infra]
+    # Run after the infrastructure is applied, or when there is none to apply
+    if: ${{ !cancelled() && needs.build.result == 'success' && (needs.apply-infra.result == 'success' || needs.apply-infra.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    steps:
+      -
+        uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ inputs.TAG }}
+      -
+        name: Restore build output
+        uses: actions/cache/restore@v6
+        with:
+          key: ${{ needs.build.outputs.cache-key }}
+          path: ${{ needs.build.outputs.build-path }}
+          fail-on-cache-miss: true
       -
         name: Parse deployment info
         id: deployment-info
-        working-directory: ${{ steps.extract-component-info.outputs.path }}
+        working-directory: ${{ needs.build.outputs.path }}
         env:
           DEPLOYMENT_FILE: deployments/${{ inputs.ENVIRONMENT }}/deployment.yml
         run: |
@@ -62,13 +206,13 @@ jobs:
             >&2 echo "::error file=$DEPLOYMENT_FILE::Missing key 'assume-role-arn'"
             exit 1
           fi
-          
+
           S3_BUCKET=$(cat "$DEPLOYMENT_FILE" | yq '.["s3-bucket"] // ""')
           if [[ -z "$S3_BUCKET" ]]; then
             >&2 echo "::error file=$DEPLOYMENT_FILE::Missing key 's3-bucket'"
             exit 1
           fi
-          
+
           CF_DISTRIBUTION=$(cat "$DEPLOYMENT_FILE" | yq '.["cf-distribution"] // ""')
           if [[ -z "$CF_DISTRIBUTION" ]]; then
             >&2 echo "::error file=$DEPLOYMENT_FILE::Missing key 'cf-distribution'"
@@ -81,37 +225,6 @@ jobs:
             echo "cf-distribution=$CF_DISTRIBUTION";
           } | tee -a "$GITHUB_OUTPUT"
       -
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: ${{ steps.extract-component-info.outputs.path }}/package.json
-          cache: npm
-          cache-dependency-path: ${{ steps.extract-component-info.outputs.path }}/package-lock.json
-      -
-        name: Install dependencies
-        working-directory: ${{ steps.extract-component-info.outputs.path }}
-        run: |
-          npm ci
-      -
-        name: Compile website
-        working-directory: ${{ steps.extract-component-info.outputs.path }}
-        env:
-          DEPLOYMENT_FILE: deployments/${{ inputs.ENVIRONMENT }}/deployment.yml
-        run: |
-          echo "::group::Load environment variables from deployment file"
-
-          KEYS=$(cat "$DEPLOYMENT_FILE" | yq '.env // {} | keys | .[]')
-          while IFS='' read -r KEY && [[ -n "$KEY" ]]; do
-            VALUE=$(cat "$DEPLOYMENT_FILE" \
-              | yq '.env // {} | .["'"$KEY"'"]')
-
-            echo "$KEY=$VALUE"
-            declare -x "$KEY=$VALUE"
-            done <<< "$KEYS"
-
-          echo "::endgroup::"
-
-          make build
-      -
         name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
@@ -119,19 +232,19 @@ jobs:
           aws-region: us-east-1
       -
         name: Upload to S3
-        working-directory: ${{ steps.extract-component-info.outputs.path }}
         env:
           BUCKET_NAME: ${{ steps.deployment-info.outputs.s3-bucket }}
+          BUILD_PATH: ${{ needs.build.outputs.build-path }}
         run: |
           # Upload static assets with long cache
-          aws s3 sync ./dist "s3://${BUCKET_NAME}/" \
+          aws s3 sync "$BUILD_PATH" "s3://${BUCKET_NAME}/" \
             --delete \
             --cache-control "public, max-age=31536000, immutable" \
             --exclude "*.html" \
             --exclude "manifest.json"
 
           # Upload HTML and manifest with no cache
-          aws s3 sync ./dist "s3://${BUCKET_NAME}/" \
+          aws s3 sync "$BUILD_PATH" "s3://${BUCKET_NAME}/" \
             --delete \
             --cache-control "public, max-age=0, must-revalidate" \
             --include "*.html" \
