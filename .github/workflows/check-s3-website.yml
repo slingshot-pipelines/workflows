@@ -7,6 +7,14 @@ on:
       COMPONENT:
         type: string
         required: true
+      TERRAFORM_VERSION:
+        type: string
+        required: false
+        description: Required when the component declares `subpaths`, since the infrastructure is then checked
+      TERRAGRUNT_VERSION:
+        type: string
+        required: false
+        description: Required when the component declares `subpaths`, since the infrastructure is then checked
     secrets:
       WRITER_APP_CLIENT_ID:
         required: false
@@ -20,11 +28,16 @@ defaults:
 permissions:
   contents: read
   id-token: write
+  pull-requests: write
 
 jobs:
 
   lint-test-build:
     name: (${{ inputs.COMPONENT }}) lint-test-build
+    outputs:
+      has-infra: ${{ steps.extract-component-info.outputs.has-infra }}
+      build-cache-key: ${{ steps.pick-build-cache-params.outputs.cache-key }}
+      build-cache-path: ${{ steps.pick-build-cache-params.outputs.cache-path }}
     runs-on: ubuntu-latest
     steps:
       -
@@ -45,10 +58,12 @@ jobs:
         with:
           component: ${{ inputs.COMPONENT }}
       -
-        name: Extract component path
+        name: Extract component paths
         id: extract-component-info
         env:
           COMPONENT_INFO: ${{ steps.component-info.outputs.info }}
+          TERRAFORM_VERSION: ${{ inputs.TERRAFORM_VERSION }}
+          TERRAGRUNT_VERSION: ${{ inputs.TERRAGRUNT_VERSION }}
         run: |
           COMPONENT_PATH=$(echo "$COMPONENT_INFO" | jq -rc '.path // ""')
           if [[ -z "$COMPONENT_PATH" ]]; then
@@ -57,9 +72,38 @@ jobs:
           fi
 
           echo "path=$COMPONENT_PATH" | tee -a "$GITHUB_OUTPUT"
+
+          HAS_SUBPATHS=$(echo "$COMPONENT_INFO" | jq -rc 'has("subpaths") and (.subpaths != null)')
+          if [[ "$HAS_SUBPATHS" == "true" ]]; then
+            SRC_SUBPATH=$(echo "$COMPONENT_INFO" | jq -rc '.subpaths.src // ""')
+            BUILD_SUBPATH=$(echo "$COMPONENT_INFO" | jq -rc '.subpaths.build // ""')
+            if [[ -z "$SRC_SUBPATH" || -z "$BUILD_SUBPATH" ]]; then
+              >&2 echo "Could not determine source and build subpaths"
+              exit 1
+            fi
+
+            if [[ -z "$TERRAFORM_VERSION" || -z "$TERRAGRUNT_VERSION" ]]; then
+              >&2 echo "TERRAFORM_VERSION and TERRAGRUNT_VERSION are required for components with subpaths"
+              exit 1
+            fi
+
+            SRC_PATH="$COMPONENT_PATH/$SRC_SUBPATH"
+            BUILD_PATH="$COMPONENT_PATH/$BUILD_SUBPATH"
+          else
+            # Without subpaths, the source is the component path and the build output is dist
+            SRC_PATH="$COMPONENT_PATH"
+            BUILD_PATH="$COMPONENT_PATH/dist"
+          fi
+
+          {
+            echo "src-path=$SRC_PATH";
+            echo "build-path=$BUILD_PATH";
+            echo "has-infra=$HAS_SUBPATHS";
+          } | tee -a "$GITHUB_OUTPUT"
       -
         name: Check Makefile targets
         id: check-make-targets
+        working-directory: ${{ steps.extract-component-info.outputs.src-path }}
         env:
           OPTIONAL_TARGETS: |
             lint
@@ -84,17 +128,17 @@ jobs:
       -
         uses: actions/setup-node@v7
         with:
-          node-version-file: ${{ steps.extract-component-info.outputs.path }}/package.json
+          node-version-file: ${{ steps.extract-component-info.outputs.src-path }}/package.json
           cache: npm
-          cache-dependency-path: ${{ steps.extract-component-info.outputs.path }}/package-lock.json
+          cache-dependency-path: ${{ steps.extract-component-info.outputs.src-path }}/package-lock.json
       -
         name: Install dependencies
-        working-directory: ${{ steps.extract-component-info.outputs.path }}
+        working-directory: ${{ steps.extract-component-info.outputs.src-path }}
         run: |
           npm ci
       -
         name: Lint source code
-        working-directory: ${{ steps.extract-component-info.outputs.path }}
+        working-directory: ${{ steps.extract-component-info.outputs.src-path }}
         if: ${{ contains(fromJSON(steps.check-make-targets.outputs.found-targets), 'lint') }}
         run: |
           make lint
@@ -126,17 +170,49 @@ jobs:
         name: Fail if changes
         shell: bash
         if: ${{ steps.detect-changes.outputs.detected == 'true' }}
-        working-directory: ${{ steps.extract-component-info.outputs.path }}
+        working-directory: ${{ steps.extract-component-info.outputs.src-path }}
         run: |
           exit 1
       -
         name: Unit test
         if: ${{ contains(fromJSON(steps.check-make-targets.outputs.found-targets), 'unit-test') }}
-        working-directory: ${{ steps.extract-component-info.outputs.path }}
+        working-directory: ${{ steps.extract-component-info.outputs.src-path }}
         run: |
           make unit-test
       -
         name: Build
-        working-directory: ${{ steps.extract-component-info.outputs.path }}
+        working-directory: ${{ steps.extract-component-info.outputs.src-path }}
         run: |
           npm run build
+      -
+        name: Pick build cache parameters
+        id: pick-build-cache-params
+        if: ${{ steps.extract-component-info.outputs.has-infra == 'true' }}
+        env:
+          CACHE_KEY: ${{ inputs.COMPONENT }}-${{ github.run_id }}-${{ github.run_attempt }}
+          CACHE_DIR: ${{ steps.extract-component-info.outputs.build-path }}
+        run: |
+          echo "cache-key=$CACHE_KEY" | tee -a "$GITHUB_OUTPUT"
+          echo "cache-path=$CACHE_DIR" | tee -a "$GITHUB_OUTPUT"
+      -
+        name: Cache build output
+        if: ${{ steps.extract-component-info.outputs.has-infra == 'true' }}
+        uses: actions/cache/save@v6
+        with:
+          key: ${{ steps.pick-build-cache-params.outputs.cache-key }}
+          path: ${{ steps.pick-build-cache-params.outputs.cache-path }}
+
+  check-infra:
+    name: (${{ inputs.COMPONENT }}) check-infra
+    needs:
+      - lint-test-build
+    if: ${{ needs.lint-test-build.outputs.has-infra == 'true' }}
+    uses: slingshot-pipelines/workflows/.github/workflows/check-terragrunt-infra.yml@check-terragrunt-infra/v0
+    with:
+      TERRAFORM_VERSION: ${{ inputs.TERRAFORM_VERSION }}
+      TERRAGRUNT_VERSION: ${{ inputs.TERRAGRUNT_VERSION }}
+      COMPONENT: ${{ inputs.COMPONENT }}
+      ALL: true
+      BUILD_CACHE_KEY: ${{ needs.lint-test-build.outputs.build-cache-key }}
+      BUILD_CACHE_PATH: ${{ needs.lint-test-build.outputs.build-cache-path }}
+    secrets: inherit

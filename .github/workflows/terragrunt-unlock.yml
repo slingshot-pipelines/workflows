@@ -66,8 +66,9 @@ jobs:
           fi
 
           case "$COMPONENT_TYPE" in
-            lambda)
-              echo "infra-dir=$COMPONENT_PATH/infra" | tee -a "$GITHUB_OUTPUT"
+            lambda|s3-website)
+              INFRA_SUBPATH=$(echo "$COMPONENT_INFO" | jq -rc '.subpaths.infra // "infra"')
+              echo "infra-dir=$COMPONENT_PATH/$INFRA_SUBPATH" | tee -a "$GITHUB_OUTPUT"
               ;;
             terragrunt-infra)
               echo "infra-dir=$COMPONENT_PATH" | tee -a "$GITHUB_OUTPUT"
