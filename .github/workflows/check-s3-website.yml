@@ -95,6 +95,11 @@ jobs:
             BUILD_PATH="$COMPONENT_PATH/dist"
           fi
 
+          # actions/setup-node doesn't support relative paths (e.g. when the
+          # component path is "."), so resolve the source to an absolute path
+          # with no relative segments
+          SRC_PATH=$(realpath -m "$GITHUB_WORKSPACE/$SRC_PATH")
+
           {
             echo "src-path=$SRC_PATH";
             echo "build-path=$BUILD_PATH";
