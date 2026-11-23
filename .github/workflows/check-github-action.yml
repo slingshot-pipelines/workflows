@@ -60,6 +60,11 @@ jobs:
             exit 1
           fi
 
+          # actions/setup-node doesn't support relative paths (e.g. when the
+          # component path is "."), so resolve it to an absolute path with no
+          # relative segments
+          COMPONENT_PATH=$(realpath -m "$GITHUB_WORKSPACE/$COMPONENT_PATH")
+
           echo "path=$COMPONENT_PATH" | tee -a "$GITHUB_OUTPUT"
 
           ACTION_SOURCE_LANGUAGE=$(echo "$COMPONENT_INFO" | jq -rc '.["source-language"]')
